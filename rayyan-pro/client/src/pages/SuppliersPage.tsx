@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useDebounce } from '../hooks/useDebounce.ts';
 import { suppliersApi, type Supplier, type SupplierTransaction } from '../api/suppliers.ts';
 import { useCurrency } from '../hooks/useCurrency.ts';
 import { Truck, Plus, Search, Eye, CreditCard, X, ChevronLeft, ChevronRight, Edit2 } from 'lucide-react';
@@ -28,6 +29,8 @@ export default function SuppliersPage() {
   const [payErr, setPayErr]     = useState('');
   const [payLoading, setPayLoading] = useState(false);
 
+  const debouncedSearch = useDebounce(search, 300);
+
   const loadSuppliers = useCallback(async (q = search) => {
     setLoading(true);
     try {
@@ -38,6 +41,10 @@ export default function SuppliersPage() {
   }, [search]);
 
   useEffect(() => { loadSuppliers(''); }, []);
+
+  useEffect(() => {
+    loadSuppliers(debouncedSearch);
+  }, [debouncedSearch]);
 
   const openAccount = async (s: Supplier, page = 1) => {
     setAcctLoading(true);
@@ -124,7 +131,6 @@ export default function SuppliersPage() {
         <input
           value={search}
           onChange={e => setSearch(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && loadSuppliers(search)}
           placeholder="بحث بالاسم أو الهاتف..."
           className="w-full bg-slate-800 border border-slate-700 rounded-lg pr-10 pl-4 py-2 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-amber-500"
         />

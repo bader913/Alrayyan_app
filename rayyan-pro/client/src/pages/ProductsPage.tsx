@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { useDebounce } from '../hooks/useDebounce.ts';
 import {
   Plus, Search, Edit2, Power, Scale, Tag, Package,
   Layers, ChevronRight, ChevronLeft, AlertTriangle,
@@ -473,10 +474,11 @@ export default function ProductsPage() {
   const [page, setPage]           = useState(1);
 
   const resetPage = useCallback(() => setPage(1), []);
+  const debouncedSearch = useDebounce(search, 300);
 
   // ─── Queries ───────────────────────────────────────────────────────────────
   const { data, isLoading } = useProducts({
-    q:           search || undefined,
+    q:           debouncedSearch || undefined,
     category_id: categoryId || undefined,
     is_active:   activeTab,
     low_stock:   lowStock || undefined,

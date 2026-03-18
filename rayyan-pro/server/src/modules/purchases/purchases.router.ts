@@ -65,6 +65,7 @@ export async function purchasesRoutes(fastify: FastifyInstance) {
         supplier_id: q.supplier_id ? parseInt(q.supplier_id, 10) : undefined,
         date_from:   q.date_from,
         date_to:     q.date_to,
+        search:      q.search,
         page:        q.page  ? parseInt(q.page,  10) : 1,
         limit:       q.limit ? parseInt(q.limit, 10) : 20,
       });

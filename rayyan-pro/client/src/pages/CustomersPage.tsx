@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { customersApi, type Customer, type CustomerTransaction } from '../api/customers.ts';
 import { useCurrency } from '../hooks/useCurrency.ts';
+import { useDebounce } from '../hooks/useDebounce.ts';
 import { Users, Plus, Search, Eye, CreditCard, X, ChevronLeft, ChevronRight, Edit2, Filter } from 'lucide-react';
 
 const fmtDate = (d: string) => new Date(d).toLocaleDateString('ar-EG-u-nu-latn', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -30,6 +31,8 @@ export default function CustomersPage() {
   const [payErr, setPayErr]       = useState('');
   const [payLoading, setPayLoading] = useState(false);
 
+  const debouncedSearch = useDebounce(search, 300);
+
   const loadCustomers = useCallback(async (q = search, type = typeFilter) => {
     setLoading(true);
     try {
@@ -40,6 +43,10 @@ export default function CustomersPage() {
   }, [search, typeFilter]);
 
   useEffect(() => { loadCustomers('', ''); }, []);
+
+  useEffect(() => {
+    loadCustomers(debouncedSearch, typeFilter);
+  }, [debouncedSearch, typeFilter]);
 
   const openAccount = async (c: Customer, page = 1) => {
     setAcctLoading(true);
@@ -144,7 +151,6 @@ export default function CustomersPage() {
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && loadCustomers(search, typeFilter)}
             placeholder="بحث بالاسم أو الهاتف..."
             className="w-full bg-slate-800 border border-slate-700 rounded-lg pr-10 pl-4 py-2 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-purple-500"
           />

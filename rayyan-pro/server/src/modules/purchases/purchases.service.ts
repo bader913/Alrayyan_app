@@ -143,6 +143,7 @@ export class PurchasesService {
     supplier_id?: number;
     date_from?:   string;
     date_to?:     string;
+    search?:      string;
     page?:        number;
     limit?:       number;
   }) {
@@ -166,11 +167,16 @@ export class PurchasesService {
       conditions.push(`p.created_at < ($${idx++}::date + interval '1 day')`);
       values.push(params.date_to);
     }
+    if (params.search?.trim()) {
+      conditions.push(`(p.invoice_number ILIKE $${idx} OR s.name ILIKE $${idx})`);
+      values.push(`%${params.search.trim()}%`);
+      idx++;
+    }
 
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
     const countRes = await pool.query<{ total: string }>(
-      `SELECT COUNT(*) AS total FROM purchases p ${where}`,
+      `SELECT COUNT(*) AS total FROM purchases p LEFT JOIN suppliers s ON s.id = p.supplier_id ${where}`,
       values
     );
     const total = parseInt(countRes.rows[0].total, 10);

@@ -24,14 +24,19 @@ interface ProductRow {
 
 function ProductSearch({ onSelect }: { onSelect: (p: ProductRow) => void }) {
   const [q, setQ] = useState('');
+  const [debouncedQ, setDebouncedQ] = useState('');
+  React.useEffect(() => {
+    const t = setTimeout(() => setDebouncedQ(q), 300);
+    return () => clearTimeout(t);
+  }, [q]);
   const { data, isFetching } = useQuery({
-    queryKey: ['products-search', q],
+    queryKey: ['products-search', debouncedQ],
     queryFn: async () => {
-      if (q.trim().length < 2) return [];
-      const res = await apiClient.get<{ products: ProductRow[] }>('/products', { params: { search: q, limit: 10 } });
+      if (debouncedQ.trim().length < 1) return [];
+      const res = await apiClient.get<{ products: ProductRow[] }>('/products', { params: { search: debouncedQ, limit: 10 } });
       return res.data.products ?? [];
     },
-    enabled: q.trim().length >= 2,
+    enabled: debouncedQ.trim().length >= 1,
   });
 
   return (
@@ -47,7 +52,7 @@ function ProductSearch({ onSelect }: { onSelect: (p: ProductRow) => void }) {
         />
         {isFetching && <span className="text-[10px] text-slate-400">...</span>}
       </div>
-      {q.trim().length >= 2 && (data?.length ?? 0) > 0 && (
+      {debouncedQ.trim().length >= 1 && (data?.length ?? 0) > 0 && (
         <div className="absolute z-20 w-full mt-1 rounded-xl border border-slate-600 shadow-2xl overflow-hidden bg-slate-800">
           {data!.map((p) => (
             <button
@@ -67,7 +72,7 @@ function ProductSearch({ onSelect }: { onSelect: (p: ProductRow) => void }) {
           ))}
         </div>
       )}
-      {q.trim().length >= 2 && data?.length === 0 && !isFetching && (
+      {debouncedQ.trim().length >= 1 && data?.length === 0 && !isFetching && (
         <div className="absolute z-20 w-full mt-1 rounded-xl border border-slate-600 p-4 text-center text-sm text-slate-400 bg-slate-800">
           لا نتائج
         </div>
@@ -446,10 +451,16 @@ export default function PurchasesPage() {
   const [viewId, setViewId]           = useState<number | null>(null);
   const [payPurchase, setPayPurchase] = useState<Purchase | null>(null);
 
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  React.useEffect(() => {
+    const t = setTimeout(() => { setDebouncedSearch(search); setPage(1); }, 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
   const { data, isLoading } = useQuery({
-    queryKey: ['purchases', page],
+    queryKey: ['purchases', page, debouncedSearch],
     queryFn: async () => {
-      const res = await purchasesApi.list({ page, limit: 20 });
+      const res = await purchasesApi.list({ page, limit: 20, ...(debouncedSearch ? { search: debouncedSearch } : {}) });
       return res.data;
     },
   });
@@ -473,6 +484,23 @@ export default function PurchasesPage() {
           >
             <Plus size={16} />
             فاتورة شراء جديدة
+          </button>
+        )}
+      </div>
+
+      {/* Search bar */}
+      <div className="relative mb-4 max-w-sm">
+        <Search size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="بحث برقم الفاتورة أو اسم المورد..."
+          className="w-full bg-slate-800 border border-slate-700 rounded-xl pr-9 pl-4 py-2 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500"
+          dir="rtl"
+        />
+        {search && (
+          <button onClick={() => setSearch('')} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white">
+            ×
           </button>
         )}
       </div>
