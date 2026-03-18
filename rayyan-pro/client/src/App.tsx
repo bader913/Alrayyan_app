@@ -12,6 +12,8 @@ import ReturnsPage from './pages/ReturnsPage.tsx';
 import SuppliersPage from './pages/SuppliersPage.tsx';
 import CustomersPage from './pages/CustomersPage.tsx';
 import ReportsPage from './pages/ReportsPage.tsx';
+import AuditLogPage from './pages/AuditLogPage.tsx';
+import SettingsPage from './pages/SettingsPage.tsx';
 
 // ============ Guards ============
 
@@ -88,6 +90,16 @@ export default function App() {
           {/* Reports — Admin + Manager */}
           <Route element={<RequireRole roles={['admin', 'manager']} />}>
             <Route path="/reports" element={<ReportsPage />} />
+          </Route>
+
+          {/* Audit Log — Admin + Manager */}
+          <Route element={<RequireRole roles={['admin', 'manager']} />}>
+            <Route path="/audit-logs" element={<AuditLogPage />} />
+          </Route>
+
+          {/* Settings — Admin only */}
+          <Route element={<RequireRole roles={['admin']} />}>
+            <Route path="/settings" element={<SettingsPage />} />
           </Route>
 
         </Route>

@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { AuthService } from './auth.service.js';
+import { auditLog } from '../../shared/utils/auditLog.js';
 
 const loginSchema = z.object({
   username: z.string().min(1, 'اسم المستخدم مطلوب'),
@@ -13,6 +14,15 @@ export async function authRoutes(fastify: FastifyInstance) {
   fastify.post('/api/auth/login', async (request, reply) => {
     const body = loginSchema.parse(request.body);
     const result = await authService.login(body.username, body.password, request);
+    auditLog({
+      userId:     result.user?.id ?? null,
+      action:     'login',
+      entityType: 'auth',
+      entityId:   result.user?.id ?? null,
+      newData:    { username: body.username, role: result.user?.role },
+      ipAddress:  request.ip,
+      userAgent:  request.headers['user-agent'] as string,
+    }).catch(() => {});
     return reply.send(result);
   });
 
@@ -28,6 +38,14 @@ export async function authRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       const body = z.object({ refresh_token: z.string() }).parse(request.body);
       await authService.logout(body.refresh_token);
+      auditLog({
+        userId:     request.user.id,
+        action:     'logout',
+        entityType: 'auth',
+        entityId:   request.user.id,
+        ipAddress:  request.ip,
+        userAgent:  request.headers['user-agent'] as string,
+      }).catch(() => {});
       return reply.send({ success: true, message: 'تم تسجيل الخروج بنجاح' });
     }
   );

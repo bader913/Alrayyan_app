@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { SalesService } from './sales.service.js';
 import { requireRole, ROLES } from '../../shared/middleware/requireRole.js';
+import { auditLog } from '../../shared/utils/auditLog.js';
 
 const saleItemSchema = z.object({
   product_id:    z.number().int().positive(),
@@ -46,6 +47,14 @@ export async function salesRoutes(fastify: FastifyInstance) {
         },
         request.user.id
       );
+      auditLog({
+        userId:     request.user.id,
+        action:     'create',
+        entityType: 'sale',
+        entityId:   sale.id,
+        newData:    { invoice_number: sale.invoice_number, total_amount: sale.total_amount, payment_method: sale.payment_method },
+        ipAddress:  request.ip,
+      }).catch(() => {});
       return reply.status(201).send({ success: true, sale });
     }
   );

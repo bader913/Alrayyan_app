@@ -15,7 +15,8 @@ import { purchasesRoutes }     from './modules/purchases/purchases.router.js';
 import { salesReturnsRoutes }  from './modules/salesReturns/salesReturns.router.js';
 import { dashboardRoutes }     from './modules/dashboard/dashboard.router.js';
 import { reportsRoutes }       from './modules/reports/reports.router.js';
-import { dbAll } from './shared/db/pool.js';
+import { auditLogsRoutes }     from './modules/auditLogs/auditLogs.router.js';
+import { settingsRoutes }      from './modules/settings/settings.router.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -73,18 +74,6 @@ export async function buildApp() {
     timestamp: new Date().toISOString(),
   }));
 
-  // Settings
-  app.get('/api/settings/all', { onRequest: [app.authenticate] }, async () => {
-    const rows = await dbAll<{ key: string; value: string }>(
-      'SELECT key, value FROM settings ORDER BY key ASC'
-    );
-    const obj = rows.reduce((acc: Record<string, string>, row) => {
-      acc[row.key] = row.value;
-      return acc;
-    }, {});
-    return { success: true, settings: obj };
-  });
-
   // Modules — Phase 0/1/2
   await app.register(authRoutes);
   await app.register(usersRoutes);
@@ -102,6 +91,9 @@ export async function buildApp() {
   // Phase 5/6 — Accounts + Dashboard + Reports
   await app.register(dashboardRoutes);
   await app.register(reportsRoutes);
+  // Phase 7 — Audit Log + Settings
+  await app.register(auditLogsRoutes);
+  await app.register(settingsRoutes);
 
   return app;
 }

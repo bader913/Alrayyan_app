@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { ProductsService } from './products.service.js';
 import { requireRole, ROLES } from '../../shared/middleware/requireRole.js';
 import { pool } from '../../shared/db/pool.js';
+import { auditLog } from '../../shared/utils/auditLog.js';
 
 const createProductSchema = z.object({
   barcode:          z.string().max(100).nullable().optional(),
@@ -87,6 +88,14 @@ export async function productsRoutes(fastify: FastifyInstance) {
         ...data,
         created_by: request.user.id,
       });
+      auditLog({
+        userId:     request.user.id,
+        action:     'create',
+        entityType: 'product',
+        entityId:   product.id,
+        newData:    { name: product.name, barcode: product.barcode },
+        ipAddress:  request.ip,
+      }).catch(() => {});
       return reply.status(201).send({ success: true, product });
     }
   );
@@ -110,6 +119,14 @@ export async function productsRoutes(fastify: FastifyInstance) {
     async (request) => {
       const { id } = request.params as { id: string };
       const product = await svc.toggleActive(parseInt(id, 10));
+      auditLog({
+        userId:     request.user.id,
+        action:     product.is_active ? 'activate' : 'deactivate',
+        entityType: 'product',
+        entityId:   parseInt(id, 10),
+        newData:    { is_active: product.is_active, name: product.name },
+        ipAddress:  request.ip,
+      }).catch(() => {});
       return { success: true, product };
     }
   );

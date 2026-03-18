@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { UsersService } from './users.service.js';
 import { requireRole, ROLES } from '../../shared/middleware/requireRole.js';
+import { auditLog } from '../../shared/utils/auditLog.js';
 
 const createUserSchema = z.object({
   username: z
@@ -56,6 +57,14 @@ export async function usersRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       const data = createUserSchema.parse(request.body);
       const user = await svc.createUser(data);
+      auditLog({
+        userId:     request.user.id,
+        action:     'create',
+        entityType: 'user',
+        entityId:   user.id,
+        newData:    { username: user.username, role: user.role, full_name: user.full_name },
+        ipAddress:  request.ip,
+      }).catch(() => {});
       return reply.status(201).send({ success: true, user });
     }
   );
@@ -68,6 +77,14 @@ export async function usersRoutes(fastify: FastifyInstance) {
       const { id } = request.params as { id: string };
       const data = updateUserSchema.parse(request.body);
       const user = await svc.updateUser(Number(id), data);
+      auditLog({
+        userId:     request.user.id,
+        action:     'update',
+        entityType: 'user',
+        entityId:   Number(id),
+        newData:    data,
+        ipAddress:  request.ip,
+      }).catch(() => {});
       return { success: true, user };
     }
   );
@@ -80,6 +97,13 @@ export async function usersRoutes(fastify: FastifyInstance) {
       const { id } = request.params as { id: string };
       const { new_password } = changePasswordSchema.parse(request.body);
       await svc.changePassword(Number(id), new_password);
+      auditLog({
+        userId:     request.user.id,
+        action:     'change_password',
+        entityType: 'user',
+        entityId:   Number(id),
+        ipAddress:  request.ip,
+      }).catch(() => {});
       return { success: true, message: 'تم تغيير كلمة المرور وإلغاء جميع الجلسات' };
     }
   );
@@ -91,6 +115,14 @@ export async function usersRoutes(fastify: FastifyInstance) {
     async (request) => {
       const { id } = request.params as { id: string };
       const user = await svc.toggleActive(Number(id), request.user.id.toString());
+      auditLog({
+        userId:     request.user.id,
+        action:     user.is_active ? 'activate' : 'deactivate',
+        entityType: 'user',
+        entityId:   Number(id),
+        newData:    { is_active: user.is_active },
+        ipAddress:  request.ip,
+      }).catch(() => {});
       return { success: true, user };
     }
   );
