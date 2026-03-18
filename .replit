@@ -17,6 +17,10 @@ author = "agent"
 task = "workflow.run"
 args = "Start application"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Rayyan Pro"
+
 [[workflows.workflow]]
 name = "Start application"
 author = "agent"
@@ -29,9 +33,29 @@ waitForPort = 5000
 [workflows.workflow.metadata]
 outputType = "webview"
 
+[[workflows.workflow]]
+name = "Rayyan Pro"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd rayyan-pro && npm run dev"
+waitForPort = 3000
+
+[[ports]]
+localPort = 3000
+externalPort = 3000
+
 [[ports]]
 localPort = 3131
 externalPort = 3001
+
+[[ports]]
+localPort = 3200
+externalPort = 3002
 
 [[ports]]
 localPort = 5000

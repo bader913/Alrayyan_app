@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+:root {
+  --primary: #059669;
+  --primary-soft: #d1fae5;
+  --radius: 1rem;
+  direction: rtl;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', 'Arial', sans-serif;
+  direction: rtl;
+  background-color: #f8fafc;
+  color: #1e293b;
+}
+
+input,
+select,
+textarea,
+button {
+  font-family: inherit;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}

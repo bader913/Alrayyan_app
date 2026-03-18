@@ -1,9 +1,9 @@
 {
-  "license_type": "trial",
-  "starts_at": "2026-03-16T18:59:58.962Z",
-  "expires_at": "2026-03-23T18:59:58.962Z",
+  "license_type": "three_years",
+  "starts_at": "2026-03-18T18:41:46.450Z",
+  "expires_at": "2029-03-18T18:41:46.450Z",
   "is_active": 1,
-  "notes": "اشتراك تجريبي لمدة أسبوع",
-  "device_fingerprint": "356c705bf5860946c61caaed6850b08712755abb69e77144d27dca06f80747ae",
-  "signature": "f394e899f583c1471c894908e44c3a555898678db3e0e65c53cca9e16123676f"
+  "notes": "تجديد 3 سنوات",
+  "device_fingerprint": "87091afbdbb8b9dc9b354e3b28a69f8a7471a4a0cecda4c020044c41d4d1fb30",
+  "signature": "0d0d51660b90dd2417d131a8395a2ec7684a46f78b6937498f5065a39c55c240"
 }
