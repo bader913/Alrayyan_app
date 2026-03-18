@@ -1,9 +1,11 @@
 import React, { useState, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useDebounce } from '../hooks/useDebounce.ts';
 import {
   Plus, Search, Edit2, Power, Scale, Tag, Package,
   Layers, ChevronRight, ChevronLeft, AlertTriangle,
   X, Check, SlidersHorizontal, ArrowUpDown, Warehouse,
+  Download, Upload, FileSpreadsheet,
 } from 'lucide-react';
 import {
   useProducts, useCreateProduct, useUpdateProduct,
@@ -96,14 +98,18 @@ interface ProductModalProps {
   suppliers: Supplier[];
   onClose: () => void;
   onSubmit: (data: CreateProductData) => void;
+  onAddCategory: (name: string) => Promise<Category>;
   loading: boolean;
   error: string;
 }
 
-function ProductModal({ editProduct, categories, suppliers, onClose, onSubmit, loading, error }: ProductModalProps) {
+function ProductModal({ editProduct, categories, suppliers, onClose, onSubmit, onAddCategory, loading, error }: ProductModalProps) {
   const [form, setForm] = useState<ProductFormState>(
     editProduct ? toFormState(editProduct) : EMPTY_FORM
   );
+  const [newCatInput, setNewCatInput]   = useState('');
+  const [showCatInput, setShowCatInput] = useState(false);
+  const [catAdding, setCatAdding]       = useState(false);
 
   const set = (field: keyof ProductFormState) => (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -111,6 +117,18 @@ function ProductModal({ editProduct, categories, suppliers, onClose, onSubmit, l
 
   const toggle = (field: keyof ProductFormState) => () =>
     setForm((f) => ({ ...f, [field]: !f[field] }));
+
+  const handleQuickAddCategory = async () => {
+    if (!newCatInput.trim() || catAdding) return;
+    setCatAdding(true);
+    try {
+      const cat = await onAddCategory(newCatInput.trim());
+      setForm((f) => ({ ...f, category_id: String(cat.id) }));
+      setNewCatInput('');
+      setShowCatInput(false);
+    } catch { /* ignored — onAddCategory should surface errors */ }
+    setCatAdding(false);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -183,12 +201,41 @@ function ProductModal({ editProduct, categories, suppliers, onClose, onSubmit, l
               </div>
               <div>
                 <label className={labelCls}>الفئة</label>
-                <select value={form.category_id} onChange={set('category_id')} className={inputCls}>
-                  <option value="">— بلا فئة —</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
+                {showCatInput ? (
+                  <div className="flex gap-1.5">
+                    <input
+                      autoFocus
+                      value={newCatInput}
+                      onChange={(e) => setNewCatInput(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleQuickAddCategory(); } if (e.key === 'Escape') { setShowCatInput(false); setNewCatInput(''); } }}
+                      placeholder="اسم الفئة الجديدة..."
+                      className={inputCls + ' flex-1'}
+                      disabled={catAdding}
+                    />
+                    <button type="button" onClick={handleQuickAddCategory} disabled={catAdding || !newCatInput.trim()}
+                      className="px-2.5 rounded-lg text-white text-xs font-bold disabled:opacity-50"
+                      style={{ background: '#059669' }}>
+                      {catAdding ? '...' : <Check size={14} />}
+                    </button>
+                    <button type="button" onClick={() => { setShowCatInput(false); setNewCatInput(''); }}
+                      className="px-2.5 rounded-lg bg-slate-100 text-slate-600 text-xs">
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-1.5">
+                    <select value={form.category_id} onChange={set('category_id')} className={inputCls + ' flex-1'}>
+                      <option value="">— بلا فئة —</option>
+                      {categories.map((c) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                    <button type="button" onClick={() => setShowCatInput(true)} title="إضافة فئة جديدة"
+                      className="px-2.5 rounded-lg border border-slate-200 text-slate-500 hover:text-emerald-600 hover:border-emerald-300 transition-colors">
+                      <Plus size={14} />
+                    </button>
+                  </div>
+                )}
               </div>
               <div>
                 <label className={labelCls}>وحدة القياس</label>
@@ -465,6 +512,7 @@ export default function ProductsPage() {
   const user = useAuthStore((s) => s.user);
   const canEdit = user?.role === 'admin' || user?.role === 'manager' || user?.role === 'warehouse';
   const canToggleActive = user?.role === 'admin' || user?.role === 'manager';
+  const qc = useQueryClient();
 
   // ─── Filters ───────────────────────────────────────────────────────────────
   const [search, setSearch]       = useState('');
@@ -489,10 +537,61 @@ export default function ProductsPage() {
   const { data: suppliers  = [] } = useSuppliers();
 
   // ─── Mutations ─────────────────────────────────────────────────────────────
-  const createProduct = useCreateProduct();
-  const updateProduct = useUpdateProduct();
-  const toggleActive  = useToggleProductActive();
-  const adjustStock   = useAdjustStock();
+  const createProduct  = useCreateProduct();
+  const updateProduct  = useUpdateProduct();
+  const toggleActive   = useToggleProductActive();
+  const adjustStock    = useAdjustStock();
+  const createCategory = useCreateCategory();
+
+  // ─── Import / Export ───────────────────────────────────────────────────────
+  const [importing, setImporting]           = useState(false);
+  const [importResult, setImportResult]     = useState<{ created: number; errors: string[] } | null>(null);
+
+  const handleExportTemplate = async () => {
+    try {
+      const token = useAuthStore.getState().accessToken ?? '';
+      const res = await fetch('/api/products/export-template', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('فشل تحميل القالب');
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = 'products_template.xlsx';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch { alert('فشل تحميل القالب'); }
+  };
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    setImporting(true);
+    setImportResult(null);
+    try {
+      const token = useAuthStore.getState().accessToken ?? '';
+      const fd    = new FormData();
+      fd.append('file', file);
+      const res  = await fetch('/api/products/import', {
+        method:  'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body:    fd,
+      });
+      const json = await res.json();
+      setImportResult({ created: json.created ?? 0, errors: json.errors ?? [] });
+      if (json.created > 0) {
+        qc.invalidateQueries({ queryKey: ['products'] });
+        setTimeout(() => { setImportResult(null); }, 8000);
+      }
+    } catch { alert('حدث خطأ أثناء الاستيراد'); }
+    setImporting(false);
+  };
+
+  const handleAddCategoryFromModal = async (name: string): Promise<Category> => {
+    return createCategory.mutateAsync({ name });
+  };
 
   // ─── Modals ────────────────────────────────────────────────────────────────
   const [showProductModal, setShowProductModal] = useState(false);
@@ -541,14 +640,35 @@ export default function ProductsPage() {
             {pagination ? `${pagination.total.toLocaleString('en-US')} منتج إجمالاً` : '...'}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => setShowCategories(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
+            className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
           >
             <Layers size={14} />
             الفئات
           </button>
+
+          {/* Export template */}
+          <button
+            onClick={handleExportTemplate}
+            title="تحميل قالب Excel فارغ"
+            className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold border border-slate-200 text-emerald-700 hover:bg-emerald-50 transition-colors"
+          >
+            <Download size={14} />
+            <FileSpreadsheet size={14} />
+            قالب Excel
+          </button>
+
+          {/* Import */}
+          {canEdit && (
+            <label className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold border border-slate-200 text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer ${importing ? 'opacity-60 pointer-events-none' : ''}`}>
+              <Upload size={14} />
+              {importing ? 'جارٍ الاستيراد...' : 'استيراد Excel'}
+              <input type="file" accept=".xlsx,.xls" onChange={handleImport} className="hidden" disabled={importing} />
+            </label>
+          )}
+
           {canEdit && (
             <button
               onClick={openCreate}
@@ -561,6 +681,25 @@ export default function ProductsPage() {
           )}
         </div>
       </div>
+
+      {/* Import result banner */}
+      {importResult && (
+        <div className={`mb-4 p-4 rounded-xl border text-sm ${importResult.errors.length === 0 ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
+          <div className="flex items-center justify-between mb-1">
+            <span className="font-black">
+              {importResult.errors.length === 0
+                ? `✓ تم استيراد ${importResult.created} منتج بنجاح`
+                : `تم استيراد ${importResult.created} منتج — ${importResult.errors.length} سطر به خطأ`}
+            </span>
+            <button onClick={() => setImportResult(null)} className="text-slate-400 hover:text-slate-600"><X size={14} /></button>
+          </div>
+          {importResult.errors.length > 0 && (
+            <ul className="mt-2 space-y-1 text-xs max-h-24 overflow-y-auto">
+              {importResult.errors.map((e, i) => <li key={i} className="flex gap-1"><span className="text-red-500">✗</span>{e}</li>)}
+            </ul>
+          )}
+        </div>
+      )}
 
       {/* Filters */}
       <div className="bg-white rounded-2xl border border-slate-100 p-4 mb-4 flex flex-wrap gap-3 items-center">
@@ -813,6 +952,7 @@ export default function ProductsPage() {
           suppliers={suppliers}
           onClose={closeModal}
           onSubmit={handleProductSubmit}
+          onAddCategory={handleAddCategoryFromModal}
           loading={createProduct.isPending || updateProduct.isPending}
           error={modalError}
         />

@@ -1,9 +1,11 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import * as XLSX from 'xlsx';
 import { ProductsService } from './products.service.js';
 import { requireRole, ROLES } from '../../shared/middleware/requireRole.js';
-import { pool } from '../../shared/db/pool.js';
+import { pool, dbAll } from '../../shared/db/pool.js';
 import { auditLog } from '../../shared/utils/auditLog.js';
+import { recordStockMovement } from '../../shared/services/stockMovements.service.js';
 
 const createProductSchema = z.object({
   barcode:          z.string().max(100).nullable().optional(),
@@ -63,6 +65,183 @@ export async function productsRoutes(fastify: FastifyInstance) {
       const { barcode } = request.params as { barcode: string };
       const products = await svc.getProductsByBarcode(barcode);
       return { success: true, products };
+    }
+  );
+
+  // ─── Export Excel template ───────────────────────────────────────────────
+  fastify.get(
+    '/api/products/export-template',
+    { onRequest: [fastify.authenticate] },
+    async (_request, reply) => {
+      const categories = await dbAll<{ name: string }>('SELECT name FROM categories ORDER BY name ASC');
+      const suppliers  = await dbAll<{ name: string }>('SELECT name FROM suppliers  ORDER BY name ASC');
+
+      const catNames = categories.map((c) => c.name).join(' | ');
+      const supNames = suppliers.map((s) => s.name).join(' | ');
+
+      const header = [
+        'اسم المنتج *',
+        'الباركود',
+        'الفئة',
+        'المورد',
+        'وحدة القياس',
+        'سعر الشراء USD *',
+        'سعر البيع تجزئة USD *',
+        'سعر البيع جملة USD',
+        'حد الجملة (كمية)',
+        'الكمية المبدئية',
+        'الحد الأدنى للمخزون',
+        'تاريخ الانتهاء (YYYY-MM-DD)',
+        'ملاحظات',
+      ];
+
+      const guide = [
+        'مثال: زيت زيتون',
+        'مثال: 6281234567890',
+        catNames || 'أضف فئات أولاً',
+        supNames || 'أضف موردين أولاً',
+        'قطعة | كغ | لتر | علبة | كرتون | حزمة | متر | دزينة',
+        '5.50',
+        '8.00',
+        '7.00',
+        '10',
+        '100',
+        '5',
+        '2025-12-31',
+        'أي ملاحظات اضافية',
+      ];
+
+      const ws = XLSX.utils.aoa_to_sheet([header, guide]);
+
+      // Column widths
+      ws['!cols'] = [
+        { wch: 25 }, { wch: 20 }, { wch: 20 }, { wch: 20 },
+        { wch: 18 }, { wch: 20 }, { wch: 22 }, { wch: 22 },
+        { wch: 18 }, { wch: 18 }, { wch: 20 }, { wch: 24 }, { wch: 20 },
+      ];
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'المنتجات');
+
+      const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+      reply.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      reply.header('Content-Disposition', 'attachment; filename="products_template.xlsx"');
+      return reply.send(buf);
+    }
+  );
+
+  // ─── Import products from Excel ──────────────────────────────────────────
+  fastify.post(
+    '/api/products/import',
+    { onRequest: [fastify.authenticate, requireRole(ROLES.STOCK_TEAM)] },
+    async (request, reply) => {
+      const data = await request.file();
+      if (!data) return reply.status(400).send({ success: false, message: 'لم يتم إرسال ملف' });
+
+      const buf = await data.toBuffer();
+      const wb  = XLSX.read(buf, { type: 'buffer' });
+      const ws  = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json<Record<string, string>>(ws, { header: 1, defval: '' }) as string[][];
+
+      if (rows.length < 2) {
+        return reply.status(400).send({ success: false, message: 'الملف فارغ أو لا يحتوي على بيانات' });
+      }
+
+      // Load category + supplier maps
+      const cats = await dbAll<{ id: number; name: string }>('SELECT id, name FROM categories');
+      const sups = await dbAll<{ id: number; name: string }>('SELECT id, name FROM suppliers');
+      const catMap = new Map(cats.map((c) => [c.name.trim().toLowerCase(), c.id]));
+      const supMap = new Map(sups.map((s) => [s.name.trim().toLowerCase(), s.id]));
+
+      let created = 0;
+      const errors: string[] = [];
+
+      // Skip row 0 (header) and row 1 (guide)
+      const dataRows = rows.slice(2);
+
+      for (let i = 0; i < dataRows.length; i++) {
+        const row = dataRows[i];
+        const rowNum = i + 3;
+
+        const name          = String(row[0] ?? '').trim();
+        const barcode       = String(row[1] ?? '').trim() || null;
+        const catName       = String(row[2] ?? '').trim();
+        const supName       = String(row[3] ?? '').trim();
+        const unit          = String(row[4] ?? '').trim() || 'قطعة';
+        const purchasePrice = parseFloat(String(row[5] ?? '')) || 0;
+        const retailPrice   = parseFloat(String(row[6] ?? '')) || 0;
+        const wholesalePrice= parseFloat(String(row[7] ?? '')) || null;
+        const wholesaleMinQ = parseFloat(String(row[8] ?? '')) || 1;
+        const initialStock  = parseFloat(String(row[9] ?? '')) || 0;
+        const minStockLevel = parseFloat(String(row[10] ?? '')) || 5;
+        const expiryDate    = String(row[11] ?? '').trim() || null;
+        const notes         = String(row[12] ?? '').trim() || null;
+
+        if (!name || name.length < 2) {
+          if (name) errors.push(`السطر ${rowNum}: اسم المنتج مطلوب (حرفان على الأقل)`);
+          continue;
+        }
+        if (purchasePrice < 0 || retailPrice < 0) {
+          errors.push(`السطر ${rowNum} (${name}): الأسعار لا يمكن أن تكون سالبة`);
+          continue;
+        }
+
+        const categoryId = catName ? (catMap.get(catName.toLowerCase()) ?? null) : null;
+        const supplierId  = supName ? (supMap.get(supName.toLowerCase()) ?? null) : null;
+
+        try {
+          const client = await pool.connect();
+          try {
+            await client.query('BEGIN');
+
+            const res = await client.query<{ id: number }>(
+              `INSERT INTO products
+                (barcode, name, category_id, supplier_id, unit, is_weighted,
+                 purchase_price, retail_price, wholesale_price, wholesale_min_qty,
+                 stock_quantity, min_stock_level, expiry_date, notes, is_active, created_by)
+               VALUES ($1,$2,$3,$4,$5,false,$6,$7,$8,$9,$10,$11,$12,$13,true,$14)
+               RETURNING id`,
+              [
+                barcode, name, categoryId, supplierId, unit,
+                purchasePrice, retailPrice,
+                wholesalePrice && wholesalePrice > 0 ? wholesalePrice : null,
+                wholesaleMinQ, initialStock, minStockLevel,
+                expiryDate || null, notes, request.user.id,
+              ]
+            );
+
+            const productId = res.rows[0].id;
+
+            if (initialStock > 0) {
+              await recordStockMovement(client, {
+                product_id:      productId,
+                movement_type:   'adjustment',
+                quantity_change: initialStock,
+                note:            'استيراد من Excel',
+                created_by:      request.user.id,
+              });
+            }
+
+            await client.query('COMMIT');
+            created++;
+          } catch (err) {
+            await client.query('ROLLBACK');
+            errors.push(`السطر ${rowNum} (${name}): ${err instanceof Error ? err.message : 'خطأ غير معروف'}`);
+          } finally {
+            client.release();
+          }
+        } catch {
+          errors.push(`السطر ${rowNum} (${name}): فشل الاتصال بقاعدة البيانات`);
+        }
+      }
+
+      return {
+        success: true,
+        created,
+        errors,
+        message: `تم استيراد ${created} منتج${created !== 1 ? 'اً' : ''}${errors.length ? ` مع ${errors.length} خطأ` : ' بنجاح'}`,
+      };
     }
   );
 
