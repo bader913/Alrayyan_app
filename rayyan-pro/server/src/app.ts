@@ -10,7 +10,9 @@ import { productsRoutes }   from './modules/products/products.router.js';
 import { customersRoutes }  from './modules/customers/customers.router.js';
 import { terminalsRoutes }  from './modules/terminals/terminals.router.js';
 import { shiftsRoutes }     from './modules/shifts/shifts.router.js';
-import { salesRoutes }      from './modules/sales/sales.router.js';
+import { salesRoutes }         from './modules/sales/sales.router.js';
+import { purchasesRoutes }     from './modules/purchases/purchases.router.js';
+import { salesReturnsRoutes }  from './modules/salesReturns/salesReturns.router.js';
 import { dbAll } from './shared/db/pool.js';
 
 declare module 'fastify' {
@@ -92,6 +94,9 @@ export async function buildApp() {
   await app.register(terminalsRoutes);
   await app.register(shiftsRoutes);
   await app.register(salesRoutes);
+  // Phase 4 — Purchases & Returns
+  await app.register(purchasesRoutes);
+  await app.register(salesReturnsRoutes);
 
   return app;
 }
