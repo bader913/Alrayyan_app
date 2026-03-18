@@ -72,10 +72,10 @@ export async function adminRoutes(fastify: FastifyInstance) {
           client.query('SELECT * FROM purchases ORDER BY id'),
           client.query('SELECT * FROM purchase_items ORDER BY id'),
           client.query('SELECT * FROM sales_returns ORDER BY id'),
-          client.query('SELECT * FROM return_items ORDER BY id'),
+          client.query('SELECT * FROM sales_return_items ORDER BY id'),
           client.query('SELECT * FROM customer_account_transactions ORDER BY id'),
           client.query('SELECT * FROM supplier_account_transactions ORDER BY id'),
-          client.query('SELECT * FROM stock_movements ORDER BY id'),
+          client.query('SELECT * FROM product_stock_movements ORDER BY id'),
           client.query('SELECT * FROM invoice_sequences ORDER BY prefix'),
         ]);
 
@@ -94,10 +94,10 @@ export async function adminRoutes(fastify: FastifyInstance) {
             purchases:                       purchases.rows,
             purchase_items:                  purchaseItems.rows,
             sales_returns:                   salesReturns.rows,
-            return_items:                    returnItems.rows,
+            sales_return_items:              returnItems.rows,
             customer_account_transactions:   custTx.rows,
             supplier_account_transactions:   supTx.rows,
-            stock_movements:                 stockMovements.rows,
+            product_stock_movements:         stockMovements.rows,
             invoice_sequences:               sequences.rows,
           },
         };
@@ -125,7 +125,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
 
       await withTransaction(async (client) => {
         // مسح جميع البيانات التجارية بالترتيب الصحيح (مراعاة العلاقات)
-        await client.query('DELETE FROM return_items');
+        await client.query('DELETE FROM sales_return_items');
         await client.query('DELETE FROM sales_returns');
         await client.query('DELETE FROM sale_items');
         await client.query('DELETE FROM sales');
@@ -133,7 +133,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
         await client.query('DELETE FROM purchases');
         await client.query('DELETE FROM customer_account_transactions');
         await client.query('DELETE FROM supplier_account_transactions');
-        await client.query('DELETE FROM stock_movements');
+        await client.query('DELETE FROM product_stock_movements');
         await client.query('UPDATE customers SET balance = 0, updated_at = NOW()');
         await client.query('UPDATE suppliers SET balance = 0, updated_at = NOW()');
         await client.query('UPDATE products SET stock_quantity = 0, updated_at = NOW()');
