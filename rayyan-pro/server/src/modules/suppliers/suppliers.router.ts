@@ -142,8 +142,12 @@ export async function suppliersRoutes(fastify: FastifyInstance) {
         if (!sup.rows[0]) throw Object.assign(new Error('المورد غير موجود'), { statusCode: 404 });
 
         const currentBalance = parseFloat(sup.rows[0].balance);
-        const amountUSD = data.amount * data.exchange_rate;
-        const newBalance = Math.max(0, currentBalance - amountUSD);
+        // exchange_rate = وحدات العملة مقابل 1 دولار (مثل: 1 USD = 100 SYP → rate=100)
+        const amountUSD  = data.currency_code === 'USD'
+          ? data.amount
+          : data.amount / data.exchange_rate;
+        // السماح بالدفع الزائد: رصيد سالب = بذمتنا للمورد
+        const newBalance = currentBalance - amountUSD;
 
         await client.query(
           'UPDATE suppliers SET balance = $1, updated_at = NOW() WHERE id = $2',

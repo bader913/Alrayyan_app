@@ -1,8 +1,23 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { customersApi, type Customer, type CustomerTransaction } from '../api/customers.ts';
+import { settingsApi } from '../api/settings.ts';
 import { useCurrency } from '../hooks/useCurrency.ts';
 import { useDebounce } from '../hooks/useDebounce.ts';
-import { Users, Plus, Search, Eye, CreditCard, X, ChevronLeft, ChevronRight, Edit2, Filter } from 'lucide-react';
+import { Users, Plus, Search, Eye, CreditCard, X, ChevronLeft, ChevronRight, Edit2, Filter, Info } from 'lucide-react';
+
+const CURRENCIES = [
+  { code: 'USD', label: 'دولار أمريكي',   symbol: '$',    rateKey: '' },
+  { code: 'SYP', label: 'ليرة سورية',     symbol: 'ل.س',  rateKey: 'usd_to_syp' },
+  { code: 'TRY', label: 'ليرة تركية',     symbol: '₺',    rateKey: 'usd_to_try' },
+  { code: 'SAR', label: 'ريال سعودي',     symbol: 'ر.س',  rateKey: 'usd_to_sar' },
+];
+
+function getRateFromSettings(settings: Record<string, string> | undefined, currCode: string): number {
+  if (currCode === 'USD' || !settings) return 1;
+  const key = CURRENCIES.find(c => c.code === currCode)?.rateKey ?? '';
+  return parseFloat(settings[key] ?? '1') || 1;
+}
 
 const fmtDate = (d: string) => new Date(d).toLocaleDateString('ar-EG-u-nu-latn', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
@@ -12,6 +27,11 @@ const TYPE_LABELS: Record<string, string> = { retail: 'تجزئة', wholesale: '
 
 export default function CustomersPage() {
   const { fmt } = useCurrency();
+  const { data: settingsData } = useQuery({
+    queryKey: ['settings'],
+    queryFn:  () => settingsApi.getAll().then(r => r.data.settings),
+    staleTime: 30_000,
+  });
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [search, setSearch]       = useState('');
   const [typeFilter, setTypeFilter] = useState('');
@@ -92,8 +112,14 @@ export default function CustomersPage() {
 
   const openPay = (c: Customer) => {
     setPayModal(c);
-    setPayForm({ amount: '', currency_code: 'USD', exchange_rate: '1', note: '' });
+    const rate = getRateFromSettings(settingsData, 'USD');
+    setPayForm({ amount: '', currency_code: 'USD', exchange_rate: String(rate), note: '' });
     setPayErr('');
+  };
+
+  const handlePayCurrencyChange = (code: string) => {
+    const rate = getRateFromSettings(settingsData, code);
+    setPayForm(p => ({ ...p, currency_code: code, exchange_rate: String(rate) }));
   };
 
   const submitPay = async (e: React.FormEvent) => {
@@ -196,9 +222,14 @@ export default function CustomersPage() {
                 </td>
                 <td className="px-4 py-3 text-left text-slate-300">{fmt(c.credit_limit)}</td>
                 <td className="px-4 py-3 text-left">
-                  <span className={parseFloat(c.balance) > 0 ? 'text-red-400 font-semibold' : 'text-green-400'}>
-                    {fmt(c.balance)}
-                  </span>
+                  {(() => {
+                    const b = parseFloat(String(c.balance)) || 0;
+                    return b > 0
+                      ? <span className="text-red-400 font-semibold">{fmt(b)}<span className="text-xs text-red-500 mr-1">(دين)</span></span>
+                      : b < 0
+                        ? <span className="text-green-400 font-semibold">{fmt(Math.abs(b))}<span className="text-xs text-green-600 mr-1">(بذمتنا)</span></span>
+                        : <span className="text-slate-500">—</span>;
+                  })()}
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-center gap-2">
@@ -206,7 +237,7 @@ export default function CustomersPage() {
                       className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-slate-700 rounded transition">
                       <Eye className="w-4 h-4" />
                     </button>
-                    {parseFloat(c.balance) > 0 && (
+                    {(parseFloat(String(c.balance)) || 0) !== 0 && (
                       <button onClick={() => openPay(c)} title="تسجيل دفعة"
                         className="p-1.5 text-slate-400 hover:text-green-400 hover:bg-slate-700 rounded transition">
                         <CreditCard className="w-4 h-4" />
@@ -232,18 +263,21 @@ export default function CustomersPage() {
               <div>
                 <h2 className="text-lg font-bold text-white">حساب: {accountModal.customer.name}</h2>
                 <div className="flex gap-4 mt-0.5 text-sm">
-                  <span className="text-slate-400">الرصيد:
-                    <span className={parseFloat(accountModal.customer.balance) > 0 ? ' text-red-400 font-bold' : ' text-green-400 font-bold'}>
-                      {' '}{fmt(accountModal.customer.balance)}
-                    </span>
-                  </span>
+                  <span className="text-slate-400">الرصيد: {(() => {
+                    const b = parseFloat(String(accountModal.customer.balance)) || 0;
+                    return b > 0
+                      ? <span className="text-red-400 font-bold">{fmt(b)} (دين)</span>
+                      : b < 0
+                        ? <span className="text-green-400 font-bold">{fmt(Math.abs(b))} (بذمتنا)</span>
+                        : <span className="text-slate-400 font-bold">لا يوجد رصيد</span>;
+                  })()}</span>
                   <span className="text-slate-400">حد الائتمان:
                     <span className="text-slate-300"> {fmt(accountModal.customer.credit_limit)}</span>
                   </span>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                {parseFloat(accountModal.customer.balance) > 0 && (
+                {(parseFloat(String(accountModal.customer.balance)) || 0) !== 0 && (
                   <button onClick={() => { setAccountModal(null); openPay(accountModal.customer); }}
                     className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white text-sm px-3 py-1.5 rounded-lg transition">
                     <CreditCard className="w-4 h-4" /> دفعة
@@ -314,68 +348,122 @@ export default function CustomersPage() {
       )}
 
       {/* Payment Modal */}
-      {payModal && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" dir="rtl">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md">
-            <div className="flex items-center justify-between p-5 border-b border-slate-700">
-              <h2 className="text-lg font-bold text-white">دفعة من: {payModal.name}</h2>
-              <button onClick={() => setPayModal(null)} className="text-slate-400 hover:text-white">
-                <X className="w-5 h-5" />
-              </button>
+      {payModal && (() => {
+        const currBalance  = parseFloat(String(payModal.balance)) || 0;
+        const payAmt       = parseFloat(payForm.amount) || 0;
+        const rate         = parseFloat(payForm.exchange_rate) || 1;
+        const amtUSD       = payForm.currency_code === 'USD' ? payAmt : (rate > 0 ? payAmt / rate : 0);
+        const newBalance   = currBalance - amtUSD;
+        const currSym      = CURRENCIES.find(c => c.code === payForm.currency_code)?.symbol ?? payForm.currency_code;
+        const isOverpaid   = newBalance < 0;
+        return (
+          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" dir="rtl">
+            <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md">
+              <div className="flex items-center justify-between p-5 border-b border-slate-700">
+                <h2 className="text-lg font-bold text-white">تسجيل دفعة — {payModal.name}</h2>
+                <button onClick={() => setPayModal(null)} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
+              </div>
+              <form onSubmit={submitPay} className="p-5 space-y-4">
+
+                {/* Current balance */}
+                <div className={`rounded-lg p-3 text-sm flex justify-between items-center ${currBalance > 0 ? 'bg-red-950/40 border border-red-800/40' : currBalance < 0 ? 'bg-green-950/40 border border-green-800/40' : 'bg-slate-800'}`}>
+                  <span className="text-slate-400">الرصيد الحالي</span>
+                  <span className={`font-bold text-base ${currBalance > 0 ? 'text-red-400' : currBalance < 0 ? 'text-green-400' : 'text-slate-400'}`}>
+                    {currBalance > 0 ? `${fmt(currBalance)} (عليه دين)` : currBalance < 0 ? `${fmt(Math.abs(currBalance))} (بذمتنا)` : 'لا يوجد رصيد'}
+                  </span>
+                </div>
+
+                {/* Amount + Currency */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="col-span-2">
+                    <label className="block text-sm text-slate-400 mb-1">المبلغ المدفوع *</label>
+                    <div className="relative">
+                      <input type="number" step="0.01" min="0.01" required value={payForm.amount}
+                        onChange={e => setPayForm(p => ({ ...p, amount: e.target.value }))}
+                        className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-green-500 pr-16"
+                        placeholder="0.00" />
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-bold">{currSym}</span>
+                    </div>
+                    {/* USD equivalent preview */}
+                    {payAmt > 0 && payForm.currency_code !== 'USD' && (
+                      <p className="text-xs text-emerald-400 mt-1 flex items-center gap-1">
+                        <Info size={11} />
+                        يعادل: <span className="font-bold">{amtUSD.toFixed(4)} $</span>
+                        {rate > 1 && <span className="text-slate-500">(1 $ = {rate} {currSym})</span>}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Currency selector */}
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-1">العملة</label>
+                    <select value={payForm.currency_code}
+                      onChange={e => handlePayCurrencyChange(e.target.value)}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-green-500">
+                      {CURRENCIES.map(c => (
+                        <option key={c.code} value={c.code}>{c.code} — {c.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Exchange rate (hidden for USD) */}
+                  {payForm.currency_code !== 'USD' && (
+                    <div>
+                      <label className="block text-sm text-slate-400 mb-1">سعر الصرف (1 $ = ؟ {currSym})</label>
+                      <input type="number" step="0.01" min="0.01" value={payForm.exchange_rate}
+                        onChange={e => setPayForm(p => ({ ...p, exchange_rate: e.target.value }))}
+                        className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-green-500" />
+                    </div>
+                  )}
+
+                  <div className={payForm.currency_code !== 'USD' ? 'col-span-2' : 'col-span-2'}>
+                    <label className="block text-sm text-slate-400 mb-1">ملاحظة</label>
+                    <input value={payForm.note}
+                      onChange={e => setPayForm(p => ({ ...p, note: e.target.value }))}
+                      placeholder="اختياري"
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-green-500" />
+                  </div>
+                </div>
+
+                {/* New balance preview */}
+                {payAmt > 0 && (
+                  <div className={`rounded-lg p-3 text-sm border ${isOverpaid ? 'bg-blue-950/40 border-blue-700/40' : 'bg-slate-800 border-slate-700'}`}>
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-400">الرصيد بعد الدفع</span>
+                      <span className={`font-bold ${isOverpaid ? 'text-blue-400' : newBalance > 0 ? 'text-yellow-400' : 'text-green-400'}`}>
+                        {isOverpaid
+                          ? `${fmt(Math.abs(newBalance))} (بذمتنا)`
+                          : newBalance > 0
+                            ? fmt(newBalance)
+                            : 'صفر — مسدّد بالكامل ✓'}
+                      </span>
+                    </div>
+                    {isOverpaid && (
+                      <p className="text-blue-300 text-xs mt-1 flex items-center gap-1">
+                        <Info size={11} />
+                        الدفع يزيد عن الدين — سيُسجَّل الباقي رصيداً بذمتنا للعميل
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {payErr && <p className="text-red-400 text-sm">{payErr}</p>}
+
+                <div className="flex gap-3 pt-1">
+                  <button type="button" onClick={() => setPayModal(null)}
+                    className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-2.5 rounded-lg transition text-sm">
+                    إلغاء
+                  </button>
+                  <button type="submit" disabled={payLoading}
+                    className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white py-2.5 rounded-lg transition text-sm font-semibold">
+                    {payLoading ? 'جاري التسجيل...' : 'تسجيل الدفعة'}
+                  </button>
+                </div>
+              </form>
             </div>
-            <form onSubmit={submitPay} className="p-5 space-y-4">
-              <div className="bg-slate-800 rounded-lg p-3 text-sm">
-                <span className="text-slate-400">الرصيد الحالي: </span>
-                <span className="text-red-400 font-bold">{fmt(payModal.balance)}</span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="col-span-2">
-                  <label className="block text-sm text-slate-400 mb-1">المبلغ *</label>
-                  <input type="number" step="0.01" min="0.01" required value={payForm.amount}
-                    onChange={e => setPayForm(p => ({ ...p, amount: e.target.value }))}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-green-500" />
-                </div>
-                <div>
-                  <label className="block text-sm text-slate-400 mb-1">العملة</label>
-                  <select value={payForm.currency_code}
-                    onChange={e => setPayForm(p => ({ ...p, currency_code: e.target.value }))}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-green-500">
-                    <option value="USD">USD</option>
-                    <option value="IQD">IQD</option>
-                    <option value="EUR">EUR</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm text-slate-400 mb-1">سعر الصرف</label>
-                  <input type="number" step="0.000001" min="0.000001" value={payForm.exchange_rate}
-                    onChange={e => setPayForm(p => ({ ...p, exchange_rate: e.target.value }))}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-green-500" />
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-sm text-slate-400 mb-1">ملاحظة</label>
-                  <input value={payForm.note}
-                    onChange={e => setPayForm(p => ({ ...p, note: e.target.value }))}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-green-500" />
-                </div>
-              </div>
-
-              {payErr && <p className="text-red-400 text-sm">{payErr}</p>}
-
-              <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setPayModal(null)}
-                  className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg transition text-sm">
-                  إلغاء
-                </button>
-                <button type="submit" disabled={payLoading}
-                  className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white py-2 rounded-lg transition text-sm font-semibold">
-                  {payLoading ? 'جاري التسجيل...' : 'تسجيل الدفعة'}
-                </button>
-              </div>
-            </form>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Create/Edit Modal */}
       {showForm && (

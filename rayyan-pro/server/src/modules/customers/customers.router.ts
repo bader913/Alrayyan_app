@@ -163,8 +163,12 @@ export async function customersRoutes(fastify: FastifyInstance) {
         if (!cust.rows[0]) throw Object.assign(new Error('العميل غير موجود'), { statusCode: 404 });
 
         const currentBalance = parseFloat(cust.rows[0].balance);
-        const amountUSD = data.amount * data.exchange_rate;
-        const newBalance = Math.max(0, currentBalance - amountUSD);
+        // exchange_rate = وحدات العملة المختارة مقابل 1 دولار (مثل: 1 USD = 100 SYP → rate=100)
+        const amountUSD  = data.currency_code === 'USD'
+          ? data.amount
+          : data.amount / data.exchange_rate;
+        // السماح بالدفع الزائد: إذا دفع أكثر من الدين يُسجل رصيد دائن (سالب = بذمتنا)
+        const newBalance = currentBalance - amountUSD;
 
         await client.query(
           'UPDATE customers SET balance = $1, updated_at = NOW() WHERE id = $2',
