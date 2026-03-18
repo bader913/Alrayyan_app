@@ -21,7 +21,7 @@ export const generateInvoiceNumber = async (
 
   const num = result.rows[0].last_number;
   const year = new Date().getFullYear();
-  const padded = String(num).padStart(6, '0');
+  const padded = String(num).padStart(3, '0');
 
   return `${prefix}-${year}-${padded}`;
 };

@@ -121,7 +121,11 @@ function CreateReturnModal({ onClose, onDone }: { onClose: () => void; onDone: (
   const [error, setError]             = useState('');
 
   const loadSale = async () => {
-    const id = parseInt(saleIdInput, 10);
+    // Accept: "INV-2026-000005", "INV-2026-005", "000005", "5"
+    const trimmed = saleIdInput.trim();
+    const parts   = trimmed.split('-');
+    const lastPart = parts[parts.length - 1];
+    const id = parseInt(lastPart, 10);
     if (!id) return;
     setLoadError('');
     try {
@@ -179,13 +183,14 @@ function CreateReturnModal({ onClose, onDone }: { onClose: () => void; onDone: (
             <label className="block text-xs font-bold text-slate-600 mb-1.5">رقم فاتورة البيع</label>
             <div className="flex gap-2">
               <input
-                type="number"
+                type="text"
                 value={saleIdInput}
                 onChange={(e) => setSaleIdInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && loadSale()}
                 className="flex-1 rounded-xl border px-3 py-2.5 text-sm outline-none focus:border-emerald-500"
-                style={{ borderColor: '#e2e8f0' }}
-                placeholder="أدخل رقم الفاتورة (ID)..."
+                style={{ borderColor: '#e2e8f0', direction: 'ltr' }}
+                placeholder="INV-2026-001 أو رقم الفاتورة..."
+                dir="ltr"
               />
               <button
                 onClick={loadSale}
