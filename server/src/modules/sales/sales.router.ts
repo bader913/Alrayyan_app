@@ -1,0 +1,82 @@
+import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
+import { SalesService } from './sales.service.js';
+import { requireRole, ROLES } from '../../shared/middleware/requireRole.js';
+
+const saleItemSchema = z.object({
+  product_id:    z.number().int().positive(),
+  quantity:      z.number().positive('الكمية يجب أن تكون أكبر من صفر'),
+  unit_price:    z.number().min(0),
+  price_type:    z.enum(['retail', 'wholesale', 'custom']).default('retail'),
+  item_discount: z.number().min(0).default(0),
+});
+
+const createSaleSchema = z.object({
+  shift_id:        z.number().int().positive('يجب تحديد الوردية'),
+  pos_terminal_id: z.number().int().positive().nullable().optional(),
+  customer_id:     z.number().int().positive().nullable().optional(),
+  sale_type:       z.enum(['retail', 'wholesale']).default('retail'),
+  items:           z.array(saleItemSchema).min(1, 'السلة فارغة'),
+  sale_discount:   z.number().min(0).default(0),
+  payment_method:  z.enum(['cash', 'card', 'credit', 'mixed']),
+  paid_amount:     z.number().min(0).default(0),
+  notes:           z.string().max(500).optional(),
+});
+
+export async function salesRoutes(fastify: FastifyInstance) {
+  const svc = new SalesService();
+
+  // POST /api/sales — الإجراء الرئيسي لـ POS
+  fastify.post(
+    '/api/sales',
+    { onRequest: [fastify.authenticate, requireRole(ROLES.CASHIER_UP)] },
+    async (request, reply) => {
+      const input = createSaleSchema.parse(request.body);
+      const sale = await svc.createSale(
+        {
+          shift_id:        input.shift_id,
+          pos_terminal_id: input.pos_terminal_id ?? null,
+          customer_id:     input.customer_id ?? null,
+          sale_type:       input.sale_type,
+          items:           input.items,
+          sale_discount:   input.sale_discount,
+          payment_method:  input.payment_method,
+          paid_amount:     input.paid_amount,
+          notes:           input.notes,
+        },
+        request.user.id
+      );
+      return reply.status(201).send({ success: true, sale });
+    }
+  );
+
+  // GET /api/sales — قائمة المبيعات
+  fastify.get(
+    '/api/sales',
+    { onRequest: [fastify.authenticate, requireRole(ROLES.ADMIN_MANAGER)] },
+    async (request) => {
+      const q = request.query as Record<string, string>;
+      const result = await svc.listSales({
+        shift_id:    q.shift_id    ? parseInt(q.shift_id, 10)    : undefined,
+        customer_id: q.customer_id ? parseInt(q.customer_id, 10) : undefined,
+        date_from:   q.date_from,
+        date_to:     q.date_to,
+        page:        q.page  ? parseInt(q.page, 10)  : 1,
+        limit:       q.limit ? parseInt(q.limit, 10) : 20,
+      });
+      return { success: true, ...result };
+    }
+  );
+
+  // GET /api/sales/:id — فاتورة واحدة مع بنودها
+  fastify.get(
+    '/api/sales/:id',
+    { onRequest: [fastify.authenticate, requireRole(ROLES.CASHIER_UP)] },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const sale = await svc.getSaleById(parseInt(id, 10));
+      if (!sale) return reply.status(404).send({ success: false, message: 'الفاتورة غير موجودة' });
+      return { success: true, sale };
+    }
+  );
+}

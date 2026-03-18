@@ -1,36 +1,71 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useAuthStore } from './store/authStore';
-import Layout from './components/Layout';
-import LoginPage from './pages/LoginPage';
-import DashboardPage from './pages/DashboardPage';
-import UsersPage from './pages/UsersPage';
-import ProductsPage from './pages/ProductsPage';
+import React from 'react';
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { useAuthStore } from './store/authStore.ts';
+import Layout from './components/Layout.tsx';
+import LoginPage from './pages/LoginPage.tsx';
+import DashboardPage from './pages/DashboardPage.tsx';
+import UsersPage from './pages/UsersPage.tsx';
+import ProductsPage from './pages/ProductsPage.tsx';
+import POSPage from './pages/POSPage.tsx';
 
-function PrivateRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuthStore();
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
+// ============ Guards ============
+
+function RequireAuth() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  return <Outlet />;
 }
+
+function RequireGuest() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  if (isAuthenticated) return <Navigate to="/dashboard" replace />;
+  return <Outlet />;
+}
+
+function RequireRole({ roles }: { roles: string[] }) {
+  const user = useAuthStore((s) => s.user);
+  if (!user || !roles.includes(user.role)) return <Navigate to="/dashboard" replace />;
+  return <Outlet />;
+}
+
+// ============ App ============
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
+    <Routes>
+      {/* Guest-only */}
+      <Route element={<RequireGuest />}>
         <Route path="/login" element={<LoginPage />} />
-        <Route
-          path="/"
-          element={
-            <PrivateRoute>
-              <Layout />
-            </PrivateRoute>
-          }
-        >
-          <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route path="dashboard" element={<DashboardPage />} />
-          <Route path="users" element={<UsersPage />} />
-          <Route path="products" element={<ProductsPage />} />
+      </Route>
+
+      {/* Authenticated — wrapped in Layout */}
+      <Route element={<RequireAuth />}>
+        <Route element={<Layout />}>
+
+          {/* All authenticated roles */}
+          <Route path="/dashboard" element={<DashboardPage />} />
+
+          {/* Admin + Manager only */}
+          <Route element={<RequireRole roles={['admin', 'manager']} />}>
+            <Route path="/users" element={<UsersPage />} />
+          </Route>
+
+          {/* Admin + Manager + Warehouse */}
+          <Route element={<RequireRole roles={['admin', 'manager', 'warehouse']} />}>
+            <Route path="/products" element={<ProductsPage />} />
+          </Route>
+
+          {/* POS — Admin + Manager + Cashier */}
+          <Route element={<RequireRole roles={['admin', 'manager', 'cashier']} />}>
+            <Route path="/pos" element={<POSPage />} />
+          </Route>
+
         </Route>
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Routes>
-    </BrowserRouter>
+      </Route>
+
+      {/* Fallback */}
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+    </Routes>
   );
 }
