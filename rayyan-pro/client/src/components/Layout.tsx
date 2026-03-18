@@ -16,7 +16,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { icon: LayoutDashboard, label: 'لوحة التحكم', path: '/dashboard',  roles: ['admin', 'manager', 'cashier', 'warehouse'], ready: true },
-  { icon: ShoppingCart,    label: 'نقطة البيع',  path: '/pos',        roles: ['admin', 'manager', 'cashier'],              ready: false },
+  { icon: ShoppingCart,    label: 'نقطة البيع',  path: '/pos',        roles: ['admin', 'manager', 'cashier'],              ready: true },
   { icon: Package,         label: 'المنتجات',    path: '/products',   roles: ['admin', 'manager', 'warehouse'],            ready: true },
   { icon: Users,           label: 'المستخدمون',  path: '/users',      roles: ['admin', 'manager'],                         ready: true },
   { icon: BarChart2,       label: 'التقارير',    path: '/reports',    roles: ['admin', 'manager'],                         ready: false },
