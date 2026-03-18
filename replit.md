@@ -112,17 +112,17 @@ rayyan-pro/
 | PUR | Purchase invoices |
 
 ### Phase Roadmap
-| Phase | Module | Status |
-|---|---|---|
-| 0 | Infrastructure + Auth foundation | **DONE** |
-| 1 | Users + Roles + Permissions | **DONE** |
-| 2 | Products, Categories, Suppliers, Stock | **DONE** |
-| 3 | POS & Sales (Terminals, Shifts, Customers, Sales) | **DONE** |
-| 4 | Purchases & Returns | Pending |
-| 5 | Accounts & Receivables | Pending |
-| 6 | Reports & Dashboard | Pending |
-| 7 | Audit Log & Settings | Pending |
-| 8 | Polish & Performance | Pending |
+| Phase | Module | Status | Commit |
+|---|---|---|---|
+| 0 | Infrastructure + Auth foundation | **DONE** | — |
+| 1 | Users + Roles + Permissions | **DONE** | — |
+| 2 | Products, Categories, Suppliers, Stock | **DONE** | — |
+| 3 | POS & Sales (Terminals, Shifts, Customers, Sales) | **DONE** | — |
+| 4 | Purchases & Returns | **DONE** | 3a5f095 |
+| 5 | Supplier & Customer Accounts | **DONE** | cbef587 |
+| 6 | Dashboard & Reports | **DONE** | 36ea1c7 |
+| 7 | Audit Log & Settings | Pending | — |
+| 8 | Polish & Performance | Pending | — |
 
 ### Running Commands
 ```bash
