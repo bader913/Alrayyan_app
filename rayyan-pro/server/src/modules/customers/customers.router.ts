@@ -154,7 +154,7 @@ export async function customersRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       const { id } = request.params as { id: string };
       const data = customerPaymentSchema.parse(request.body);
-      const userId = parseInt(request.user.id);
+      const userId = request.user.id;
 
       const result = await withTransaction(async (client) => {
         const cust = await client.query(

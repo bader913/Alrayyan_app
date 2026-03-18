@@ -7,7 +7,7 @@ import type { FastifyRequest, FastifyReply } from 'fastify';
  * مثال:
  *   onRequest: [fastify.authenticate, requireRole(['admin', 'manager'])]
  */
-export const requireRole = (allowedRoles: string[]) => {
+export const requireRole = (allowedRoles: readonly string[]) => {
   return async (request: FastifyRequest, reply: FastifyReply) => {
     const user = request.user;
     if (!user || !allowedRoles.includes(user.role)) {

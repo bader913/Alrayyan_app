@@ -373,7 +373,7 @@ export default function UsersPage() {
                         <div className="font-black text-slate-700 text-sm flex items-center gap-1.5">
                           {u.full_name}
                           {u.is_protected && (
-                            <Shield size={12} className="text-amber-500" title="محمي" />
+                            <Shield size={12} className="text-amber-500" aria-label="محمي" />
                           )}
                         </div>
                         <div className="text-xs text-slate-400 font-medium">@{u.username}</div>

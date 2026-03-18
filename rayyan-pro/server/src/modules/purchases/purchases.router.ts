@@ -47,8 +47,8 @@ export async function purchasesRoutes(fastify: FastifyInstance) {
         userId:     request.user.id,
         action:     'create',
         entityType: 'purchase',
-        entityId:   result.purchase?.id ?? null,
-        newData:    { invoice_number: result.purchase?.invoice_number, total_amount: result.purchase?.total_amount },
+        entityId:   result.purchaseId ?? null,
+        newData:    { invoice_number: result.invoiceNumber, total_amount: result.totalAmount },
         ipAddress:  request.ip,
       }).catch(() => {});
       return reply.status(201).send({ success: true, ...result });

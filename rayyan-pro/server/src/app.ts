@@ -18,17 +18,20 @@ import { reportsRoutes }       from './modules/reports/reports.router.js';
 import { auditLogsRoutes }     from './modules/auditLogs/auditLogs.router.js';
 import { settingsRoutes }      from './modules/settings/settings.router.js';
 
+declare module '@fastify/jwt' {
+  interface FastifyJWT {
+    user: {
+      id:        number;
+      username:  string;
+      full_name: string;
+      role:      string;
+    };
+  }
+}
+
 declare module 'fastify' {
   interface FastifyInstance {
     authenticate: (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
-  }
-  interface FastifyRequest {
-    user: {
-      id: number;
-      username: string;
-      full_name: string;
-      role: string;
-    };
   }
 }
 

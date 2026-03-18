@@ -53,7 +53,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     settingsApi.getAll().then(res => {
-      setValues(res.settings);
+      setValues(res.data.settings);
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);

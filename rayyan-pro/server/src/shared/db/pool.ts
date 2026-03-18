@@ -17,19 +17,21 @@ pool.on('error', (err) => {
   console.error('Unexpected PostgreSQL pool error:', err);
 });
 
-export const dbGet = async <T = Record<string, unknown>>(
+export const dbGet = async <T = Record<string, any>>(
   sql: string,
   params: unknown[] = []
 ): Promise<T | null> => {
-  const result = await pool.query<T>(sql, params);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const result = await (pool as any).query(sql, params) as { rows: T[] };
   return result.rows[0] ?? null;
 };
 
-export const dbAll = async <T = Record<string, unknown>>(
+export const dbAll = async <T = Record<string, any>>(
   sql: string,
   params: unknown[] = []
 ): Promise<T[]> => {
-  const result = await pool.query<T>(sql, params);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const result = await (pool as any).query(sql, params) as { rows: T[] };
   return result.rows;
 };
 

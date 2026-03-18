@@ -133,7 +133,7 @@ export async function suppliersRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       const { id } = request.params as { id: string };
       const data = paymentSchema.parse(request.body);
-      const userId = parseInt(request.user.id);
+      const userId = request.user.id;
 
       const result = await withTransaction(async (client) => {
         const sup = await client.query(

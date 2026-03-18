@@ -61,7 +61,7 @@ export async function usersRoutes(fastify: FastifyInstance) {
         userId:     request.user.id,
         action:     'create',
         entityType: 'user',
-        entityId:   user.id,
+        entityId:   Number(user.id),
         newData:    { username: user.username, role: user.role, full_name: user.full_name },
         ipAddress:  request.ip,
       }).catch(() => {});

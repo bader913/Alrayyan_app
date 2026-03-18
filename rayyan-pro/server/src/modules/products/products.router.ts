@@ -92,7 +92,7 @@ export async function productsRoutes(fastify: FastifyInstance) {
         userId:     request.user.id,
         action:     'create',
         entityType: 'product',
-        entityId:   product.id,
+        entityId:   Number(product.id),
         newData:    { name: product.name, barcode: product.barcode },
         ipAddress:  request.ip,
       }).catch(() => {});

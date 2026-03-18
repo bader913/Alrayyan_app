@@ -22,7 +22,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!isManager) { setLoading(false); return; }
     dashboardApi.getStats().then(res => {
-      setStats(res.stats);
+      setStats(res.data.stats);
       setLoading(false);
     }).catch(() => setLoading(false));
   }, [isManager]);

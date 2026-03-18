@@ -52,14 +52,14 @@ export default function AuditLogPage() {
     setLoading(true);
     try {
       const res = await auditLogsApi.list({ from, to, action: action || undefined, entity_type: entityType || undefined, page: p });
-      setRows(res.data);
-      setTotal(res.total);
+      setRows(res.data.data);
+      setTotal(res.data.total);
     } catch { /* ignore */ }
     setLoading(false);
   };
 
   useEffect(() => {
-    auditLogsApi.meta().then(m => { setActions(m.actions); setEntityTypes(m.entityTypes); }).catch(() => {});
+    auditLogsApi.meta().then(m => { setActions(m.data.actions); setEntityTypes(m.data.entityTypes); }).catch(() => {});
     load(1);
   }, []);
 

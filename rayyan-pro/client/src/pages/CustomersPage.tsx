@@ -33,7 +33,7 @@ export default function CustomersPage() {
     setLoading(true);
     try {
       const res = await customersApi.list({ q: q || undefined, type: type || undefined, limit: 50 });
-      setCustomers(res.customers);
+      setCustomers(res.data.customers);
     } catch { /* ignore */ }
     setLoading(false);
   }, [search, typeFilter]);
@@ -45,7 +45,7 @@ export default function CustomersPage() {
     setAccountModal({ customer: c, transactions: [], total: 0, page });
     try {
       const res = await customersApi.getAccount(c.id, page);
-      setAccountModal({ customer: res.customer, transactions: res.transactions, total: res.total, page: res.page });
+      setAccountModal({ customer: res.data.customer, transactions: res.data.transactions, total: res.data.total, page: res.data.page });
     } catch { /* ignore */ }
     setAcctLoading(false);
   };

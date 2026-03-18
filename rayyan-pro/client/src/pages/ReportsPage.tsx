@@ -18,44 +18,44 @@ export default function ReportsPage() {
   const [to, setTo]     = useState(today);
 
   // Sales report state
-  const [salesData, setSalesData] = useState<Awaited<ReturnType<typeof reportsApi.sales>> | null>(null);
+  const [salesData, setSalesData] = useState<Awaited<ReturnType<typeof reportsApi.sales>>['data'] | null>(null);
   const [salesLoading, setSalesLoading] = useState(false);
 
   // Purchases report state
-  const [purData, setPurData] = useState<Awaited<ReturnType<typeof reportsApi.purchases>> | null>(null);
+  const [purData, setPurData] = useState<Awaited<ReturnType<typeof reportsApi.purchases>>['data'] | null>(null);
   const [purLoading, setPurLoading] = useState(false);
 
   // Stock report state
-  const [stockData, setStockData] = useState<Awaited<ReturnType<typeof reportsApi.stock>> | null>(null);
+  const [stockData, setStockData] = useState<Awaited<ReturnType<typeof reportsApi.stock>>['data'] | null>(null);
   const [stockLoading, setStockLoading] = useState(false);
   const [stockQ, setStockQ] = useState('');
   const [showLowStock, setShowLowStock] = useState(false);
 
   // Profit report state
-  const [profitData, setProfitData] = useState<Awaited<ReturnType<typeof reportsApi.profit>> | null>(null);
+  const [profitData, setProfitData] = useState<Awaited<ReturnType<typeof reportsApi.profit>>['data'] | null>(null);
   const [profitLoading, setProfitLoading] = useState(false);
 
   const loadSales = async () => {
     setSalesLoading(true);
-    try { setSalesData(await reportsApi.sales({ from, to })); } catch { /* ignore */ }
+    try { setSalesData((await reportsApi.sales({ from, to })).data); } catch { /* ignore */ }
     setSalesLoading(false);
   };
 
   const loadPurchases = async () => {
     setPurLoading(true);
-    try { setPurData(await reportsApi.purchases({ from, to })); } catch { /* ignore */ }
+    try { setPurData((await reportsApi.purchases({ from, to })).data); } catch { /* ignore */ }
     setPurLoading(false);
   };
 
   const loadStock = async () => {
     setStockLoading(true);
-    try { setStockData(await reportsApi.stock({ q: stockQ || undefined, low_stock: showLowStock || undefined })); } catch { /* ignore */ }
+    try { setStockData((await reportsApi.stock({ q: stockQ || undefined, low_stock: showLowStock || undefined })).data); } catch { /* ignore */ }
     setStockLoading(false);
   };
 
   const loadProfit = async () => {
     setProfitLoading(true);
-    try { setProfitData(await reportsApi.profit({ from, to })); } catch { /* ignore */ }
+    try { setProfitData((await reportsApi.profit({ from, to })).data); } catch { /* ignore */ }
     setProfitLoading(false);
   };
 
@@ -243,8 +243,8 @@ export default function ReportsPage() {
               ]} />
               <TableHeader title={`${stockData.data.length} صنف`} onExport={() => exportCSV(
                 ['الكود', 'المنتج', 'الفئة', 'الكمية', 'الحد الأدنى', 'سعر التكلفة', 'سعر الجملة', 'سعر التجزئة'],
-                stockData.data.map(r => [r.sku, r.name, r.category_name ?? '—', r.stock_quantity,
-                  r.min_stock_level, r.cost_price, r.wholesale_price, r.retail_price]),
+                stockData.data.map(r => [r.barcode, r.name, r.category_name ?? '—', r.stock_quantity,
+                  r.min_stock_level, r.purchase_price, r.wholesale_price, r.retail_price]),
                 'stock_report.csv'
               )} />
               <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
@@ -268,14 +268,14 @@ export default function ReportsPage() {
                         const isLow = parseFloat(r.stock_quantity) <= parseFloat(r.min_stock_level);
                         return (
                           <tr key={r.id} className={`border-t border-slate-700 ${isLow ? 'bg-yellow-900/10' : ''}`}>
-                            <td className="px-4 py-2 font-mono text-slate-400 text-xs">{r.sku}</td>
+                            <td className="px-4 py-2 font-mono text-slate-400 text-xs">{r.barcode}</td>
                             <td className="px-4 py-2 text-white">{r.name}</td>
                             <td className="px-4 py-2 text-slate-400 text-xs">{r.category_name ?? '—'}</td>
                             <td className={`px-4 py-2 text-left font-bold ${isLow ? 'text-yellow-400' : 'text-white'}`}>
                               {r.stock_quantity}
                             </td>
                             <td className="px-4 py-2 text-left text-slate-400">{r.min_stock_level}</td>
-                            <td className="px-4 py-2 text-left text-slate-300">${fmt(r.cost_price)}</td>
+                            <td className="px-4 py-2 text-left text-slate-300">${fmt(r.purchase_price)}</td>
                             <td className="px-4 py-2 text-left text-slate-300">${fmt(r.wholesale_price)}</td>
                             <td className="px-4 py-2 text-left text-slate-300">${fmt(r.retail_price)}</td>
                           </tr>
@@ -310,7 +310,7 @@ export default function ReportsPage() {
               ]} />
               <TableHeader title={`${profitData.data.length} منتج`} onExport={() => exportCSV(
                 ['المنتج', 'الكود', 'الكمية المباعة', 'الإيرادات', 'التكلفة', 'الربح الإجمالي'],
-                profitData.data.map(r => [r.product_name, r.sku, r.total_sold,
+                profitData.data.map(r => [r.product_name, r.barcode, r.total_sold,
                   r.total_revenue, r.total_cost, r.gross_profit]),
                 `profit_${from}_${to}.csv`
               )} />
@@ -334,7 +334,7 @@ export default function ReportsPage() {
                         return (
                           <tr key={r.id} className="border-t border-slate-700">
                             <td className="px-4 py-2 text-white">{r.product_name}</td>
-                            <td className="px-4 py-2 font-mono text-slate-400 text-xs">{r.sku}</td>
+                            <td className="px-4 py-2 font-mono text-slate-400 text-xs">{r.barcode}</td>
                             <td className="px-4 py-2 text-left text-slate-300">{r.total_sold}</td>
                             <td className="px-4 py-2 text-left text-green-400">${fmt(r.total_revenue)}</td>
                             <td className="px-4 py-2 text-left text-red-400">${fmt(r.total_cost)}</td>

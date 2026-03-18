@@ -31,7 +31,7 @@ export default function SuppliersPage() {
     setLoading(true);
     try {
       const res = await suppliersApi.list(q || undefined);
-      setSuppliers(res.suppliers);
+      setSuppliers(res.data.suppliers);
     } catch { /* ignore */ }
     setLoading(false);
   }, [search]);
@@ -43,7 +43,7 @@ export default function SuppliersPage() {
     setAccountModal({ supplier: s, transactions: [], total: 0, page });
     try {
       const res = await suppliersApi.getAccount(s.id, page);
-      setAccountModal({ supplier: res.supplier, transactions: res.transactions, total: res.total, page: res.page });
+      setAccountModal({ supplier: res.data.supplier, transactions: res.data.transactions, total: res.data.total, page: res.data.page });
     } catch { /* ignore */ }
     setAcctLoading(false);
   };
