@@ -1,12 +1,4 @@
-import axios from 'axios';
-
-const api = axios.create({ baseURL: '/api' });
-
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('accessToken');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
+import { apiClient } from './client.ts';
 
 export interface PurchaseItem {
   id:            number;
@@ -52,14 +44,14 @@ export interface CreatePurchasePayload {
 
 export const purchasesApi = {
   list: (params?: Record<string, string | number>) =>
-    api.get<{ success: boolean; purchases: Purchase[]; total: number }>('/purchases', { params }),
+    apiClient.get<{ success: boolean; purchases: Purchase[]; total: number }>('/purchases', { params }),
 
   getById: (id: number) =>
-    api.get<{ success: boolean; purchase: Purchase }>(`/purchases/${id}`),
+    apiClient.get<{ success: boolean; purchase: Purchase }>(`/purchases/${id}`),
 
   create: (payload: CreatePurchasePayload) =>
-    api.post<{ success: boolean; purchaseId: number; invoiceNumber: string; totalAmount: number }>('/purchases', payload),
+    apiClient.post<{ success: boolean; purchaseId: number; invoiceNumber: string; totalAmount: number }>('/purchases', payload),
 
   addPayment: (id: number, amount: number) =>
-    api.post<{ success: boolean; message: string }>(`/purchases/${id}/payment`, { amount }),
+    apiClient.post<{ success: boolean; message: string }>(`/purchases/${id}/payment`, { amount }),
 };

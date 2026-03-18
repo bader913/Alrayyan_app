@@ -1,12 +1,4 @@
-import axios from 'axios';
-
-const api = axios.create({ baseURL: '/api' });
-
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('accessToken');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
+import { apiClient } from './client.ts';
 
 export interface ReturnItem {
   id:           number;
@@ -71,14 +63,14 @@ export interface CreateReturnPayload {
 
 export const returnsApi = {
   list: (params?: Record<string, string | number>) =>
-    api.get<{ success: boolean; returns: SaleReturn[]; total: number }>('/returns', { params }),
+    apiClient.get<{ success: boolean; returns: SaleReturn[]; total: number }>('/returns', { params }),
 
   getById: (id: number) =>
-    api.get<{ success: boolean; return: SaleReturn }>(`/returns/${id}`),
+    apiClient.get<{ success: boolean; return: SaleReturn }>(`/returns/${id}`),
 
   create: (payload: CreateReturnPayload) =>
-    api.post<{ success: boolean; returnId: number; returnNumber: string; totalAmount: number }>('/returns', payload),
+    apiClient.post<{ success: boolean; returnId: number; returnNumber: string; totalAmount: number }>('/returns', payload),
 
   getSaleForReturn: (saleId: number) =>
-    api.get<{ success: boolean; sale: SaleForReturn }>(`/sales/${saleId}/for-return`),
+    apiClient.get<{ success: boolean; sale: SaleForReturn }>(`/sales/${saleId}/for-return`),
 };

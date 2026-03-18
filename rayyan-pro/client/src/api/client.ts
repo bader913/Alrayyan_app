@@ -16,6 +16,10 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
+// Single refresh promise — prevents race condition when multiple requests
+// get 401 simultaneously (e.g. on page load with no in-memory accessToken).
+let refreshingPromise: Promise<string> | null = null;
+
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -28,9 +32,21 @@ apiClient.interceptors.response.use(
 
       if (refreshToken) {
         try {
-          const res = await axios.post('/api/auth/refresh', { refresh_token: refreshToken });
-          const newToken = res.data.access_token;
-          useAuthStore.getState().setAccessToken(newToken);
+          // Reuse the same in-flight refresh rather than sending multiple requests
+          if (!refreshingPromise) {
+            refreshingPromise = axios
+              .post('/api/auth/refresh', { refresh_token: refreshToken })
+              .then((res) => {
+                const newToken = res.data.access_token;
+                useAuthStore.getState().setAccessToken(newToken);
+                return newToken;
+              })
+              .finally(() => {
+                refreshingPromise = null;
+              });
+          }
+
+          const newToken = await refreshingPromise;
           originalRequest.headers.Authorization = `Bearer ${newToken}`;
           return apiClient(originalRequest);
         } catch {
