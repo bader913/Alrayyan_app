@@ -47,6 +47,10 @@ export class AuthService {
       expiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '15m',
     });
 
+    // TODO (إنتاج): يجب إرسال refresh_token عبر httpOnly Secure Cookie
+    // بدلاً من إعادته في body الاستجابة، لمنع هجمات XSS.
+    // مثال: reply.setCookie('refresh_token', token, { httpOnly: true, secure: true, sameSite: 'strict', path: '/api/auth' })
+    // في التطوير: الإرسال في body مقبول مؤقتاً.
     const refreshToken = crypto.randomBytes(64).toString('hex');
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);

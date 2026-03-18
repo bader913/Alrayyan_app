@@ -61,7 +61,8 @@ A new professional system built from scratch with PostgreSQL, proper auth, audit
 rayyan-pro/
 ├── package.json            # Root: concurrently dev runner
 ├── migrations/
-│   └── 001_initial_schema.sql  # Full PostgreSQL schema
+│   ├── 001_initial_schema.sql  # Full PostgreSQL schema
+│   └── 002_stock_movements.sql # حركات المخزون (14 حقل، 4 indexes)
 ├── server/
 │   ├── package.json        # Fastify dependencies + dotenv
 │   └── src/
@@ -77,9 +78,12 @@ rayyan-pro/
 │       │   └── utils/
 │       │       └── invoiceNumber.ts  # INV-YEAR-000001 format
 │       └── modules/
-│           └── auth/
-│               ├── auth.router.ts   # POST /api/auth/login, /refresh, /logout, GET /me
-│               └── auth.service.ts  # Login, refreshToken, logout logic
+│           ├── auth/
+│           │   ├── auth.router.ts   # POST /api/auth/login, /refresh, /logout, GET /me
+│           │   └── auth.service.ts  # Login, refreshToken, logout + TODO: httpOnly cookie
+│           └── users/
+│               ├── users.router.ts  # GET/POST /api/users, PUT/PATCH /:id
+│               └── users.service.ts # CRUD + toggleActive + changePassword
 └── client/
     ├── package.json        # React + Vite dependencies
     ├── vite.config.ts      # Port 3000, proxy /api → :3200, allowedHosts: all
@@ -92,9 +96,12 @@ rayyan-pro/
         │   └── client.ts   # Axios instance + JWT interceptor + auto-refresh
         ├── store/
         │   └── authStore.ts  # Zustand: user, accessToken, refreshToken (persisted)
+        ├── components/
+        │   └── Layout.tsx         # Shared sidebar + Outlet (NavLink active states)
         └── pages/
             ├── LoginPage.tsx      # Arabic login form
-            └── DashboardPage.tsx  # Sidebar + phase roadmap cards
+            ├── DashboardPage.tsx  # Phase roadmap cards (no sidebar — uses Layout)
+            └── UsersPage.tsx      # Users table + Create/Edit/Password modals
 ```
 
 ### Invoice Sequences
@@ -108,7 +115,7 @@ rayyan-pro/
 | Phase | Module | Status |
 |---|---|---|
 | 0 | Infrastructure + Auth foundation | **DONE** |
-| 1 | User management API | Pending |
+| 1 | Users + Roles + Permissions | **DONE** |
 | 2 | Products & Categories | Pending |
 | 3 | POS & Sales | Pending |
 | 4 | Purchases & Returns | Pending |

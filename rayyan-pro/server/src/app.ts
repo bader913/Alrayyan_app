@@ -3,7 +3,8 @@ import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import { errorHandler } from './shared/middleware/errorHandler.js';
 import { authRoutes } from './modules/auth/auth.router.js';
-import { dbGet, dbAll } from './shared/db/pool.js';
+import { usersRoutes } from './modules/users/users.router.js';
+import { dbAll } from './shared/db/pool.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -53,6 +54,7 @@ export async function buildApp() {
 
   app.setErrorHandler(errorHandler);
 
+  // Health check
   app.get('/health', async () => ({
     success: true,
     app: 'Rayyan Pro',
@@ -60,15 +62,11 @@ export async function buildApp() {
     timestamp: new Date().toISOString(),
   }));
 
-  app.get('/api/settings', { onRequest: [app.authenticate] }, async () => {
-    const rows = await dbGet<{ key: string; value: string }[]>(
-      'SELECT key, value FROM settings'
-    );
-    return rows;
-  });
-
+  // Settings
   app.get('/api/settings/all', { onRequest: [app.authenticate] }, async () => {
-    const rows = await dbAll<{ key: string; value: string }>('SELECT key, value FROM settings ORDER BY key ASC');
+    const rows = await dbAll<{ key: string; value: string }>(
+      'SELECT key, value FROM settings ORDER BY key ASC'
+    );
     const obj = rows.reduce((acc: Record<string, string>, row) => {
       acc[row.key] = row.value;
       return acc;
@@ -76,7 +74,9 @@ export async function buildApp() {
     return { success: true, settings: obj };
   });
 
+  // Modules
   await app.register(authRoutes);
+  await app.register(usersRoutes);
 
   return app;
 }
