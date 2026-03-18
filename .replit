@@ -84,5 +84,6 @@ localPort = 24678
 externalPort = 3000
 
 [deployment]
-deploymentTarget = "vm"
-run = ["bash", "-c", "cd Alrayyan_app && npx concurrently \"npx tsx server.ts\" \"npx vite --port 5000 --host 0.0.0.0\""]
+deploymentTarget = "autoscale"
+run = ["bash", "-c", "NODE_ENV=production node rayyan-pro/server/dist/index.js"]
+build = ["bash", "-c", "cd rayyan-pro && npm install && cd server && npm install && cd ../client && npm install && cd .. && npm run build && npm run migrate"]

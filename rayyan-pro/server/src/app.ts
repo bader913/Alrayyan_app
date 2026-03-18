@@ -1,6 +1,10 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
+import fastifyStatic from '@fastify/static';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import { existsSync } from 'fs';
 import { errorHandler } from './shared/middleware/errorHandler.js';
 import { authRoutes }       from './modules/auth/auth.router.js';
 import { usersRoutes }      from './modules/users/users.router.js';
@@ -36,6 +40,10 @@ declare module 'fastify' {
 }
 
 import type { FastifyRequest, FastifyReply } from 'fastify';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const IS_PROD    = process.env.NODE_ENV === 'production';
+const CLIENT_DIR = join(__dirname, '../../client/dist');
 
 export async function buildApp() {
   const app = Fastify({
@@ -97,6 +105,19 @@ export async function buildApp() {
   // Phase 7 — Audit Log + Settings
   await app.register(auditLogsRoutes);
   await app.register(settingsRoutes);
+
+  // Production: serve compiled React client from client/dist
+  if (IS_PROD && existsSync(CLIENT_DIR)) {
+    await app.register(fastifyStatic, {
+      root:   CLIENT_DIR,
+      prefix: '/',
+      decorateReply: false,
+    });
+    // SPA fallback — all non-API routes return index.html
+    app.setNotFoundHandler((_req, reply) => {
+      reply.sendFile('index.html');
+    });
+  }
 
   return app;
 }
