@@ -1,6 +1,10 @@
 import pg from 'pg';
 
-const { Pool } = pg;
+const { Pool, types } = pg;
+
+// pg returns bigint (OID 20) as string by default — parse to JS number.
+// All our IDs are bigint; values stay within JS safe-integer range.
+types.setTypeParser(20, (val: string) => parseInt(val, 10));
 
 if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL environment variable is required');
