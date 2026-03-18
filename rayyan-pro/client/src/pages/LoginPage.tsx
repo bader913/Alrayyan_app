@@ -39,11 +39,26 @@ export default function LoginPage() {
       dir="rtl"
     >
       <div className="w-full max-w-sm">
-        <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-8">
+        <div className="bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden">
+
+          {/* ── شريط التعريف المميز ── */}
+          <div
+            className="flex items-center justify-between px-5 py-2.5"
+            style={{ background: 'linear-gradient(90deg, #059669 0%, #0d9488 100%)' }}
+          >
+            <span className="text-white text-xs font-black tracking-widest uppercase opacity-90">
+              RAYYAN PRO
+            </span>
+            <span className="bg-white/20 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+              v1.0 — النظام الجديد
+            </span>
+          </div>
+
+          <div className="p-8">
           <div className="text-center mb-8">
             <div
               className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center text-white text-2xl font-black shadow-lg"
-              style={{ background: 'var(--primary, #059669)' }}
+              style={{ background: 'linear-gradient(135deg, #059669, #0d9488)' }}
             >
               ر
             </div>
@@ -96,10 +111,11 @@ export default function LoginPage() {
               {loading ? 'جاري تسجيل الدخول...' : 'تسجيل الدخول'}
             </button>
           </form>
+          </div>
         </div>
 
         <p className="text-center text-xs text-slate-400 mt-6 font-medium">
-          Rayyan Pro v0.1.0 — المرحلة 0
+          Rayyan Pro v1.0 — النظام الاحترافي الجديد
         </p>
       </div>
     </div>
