@@ -116,7 +116,7 @@ rayyan-pro/
 |---|---|---|
 | 0 | Infrastructure + Auth foundation | **DONE** |
 | 1 | Users + Roles + Permissions | **DONE** |
-| 2 | Products & Categories | Pending |
+| 2 | Products, Categories, Suppliers, Stock | **DONE** |
 | 3 | POS & Sales | Pending |
 | 4 | Purchases & Returns | Pending |
 | 5 | Accounts & Receivables | Pending |

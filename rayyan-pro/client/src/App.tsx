@@ -5,6 +5,7 @@ import Layout from './components/Layout.tsx';
 import LoginPage from './pages/LoginPage.tsx';
 import DashboardPage from './pages/DashboardPage.tsx';
 import UsersPage from './pages/UsersPage.tsx';
+import ProductsPage from './pages/ProductsPage.tsx';
 
 // ============ Guards ============
 
@@ -46,6 +47,11 @@ export default function App() {
           {/* Admin + Manager only */}
           <Route element={<RequireRole roles={['admin', 'manager']} />}>
             <Route path="/users" element={<UsersPage />} />
+          </Route>
+
+          {/* Admin + Manager + Warehouse */}
+          <Route element={<RequireRole roles={['admin', 'manager', 'warehouse']} />}>
+            <Route path="/products" element={<ProductsPage />} />
           </Route>
 
         </Route>

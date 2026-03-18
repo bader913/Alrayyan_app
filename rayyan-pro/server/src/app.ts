@@ -2,8 +2,11 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import { errorHandler } from './shared/middleware/errorHandler.js';
-import { authRoutes } from './modules/auth/auth.router.js';
-import { usersRoutes } from './modules/users/users.router.js';
+import { authRoutes }      from './modules/auth/auth.router.js';
+import { usersRoutes }     from './modules/users/users.router.js';
+import { categoriesRoutes } from './modules/categories/categories.router.js';
+import { suppliersRoutes }  from './modules/suppliers/suppliers.router.js';
+import { productsRoutes }   from './modules/products/products.router.js';
 import { dbAll } from './shared/db/pool.js';
 
 declare module 'fastify' {
@@ -77,6 +80,9 @@ export async function buildApp() {
   // Modules
   await app.register(authRoutes);
   await app.register(usersRoutes);
+  await app.register(categoriesRoutes);
+  await app.register(suppliersRoutes);
+  await app.register(productsRoutes);
 
   return app;
 }
