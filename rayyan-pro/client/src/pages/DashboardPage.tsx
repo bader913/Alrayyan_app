@@ -8,7 +8,7 @@ import {
 
 const fmt  = (v: number) => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtN = (v: number) => v.toLocaleString('en-US');
-const fmtDate = (d: string) => new Date(d).toLocaleDateString('ar-EG', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+const fmtDate = (d: string) => new Date(d).toLocaleDateString('ar-EG-u-nu-latn', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
 const ROLE_LABELS: Record<string, string> = { admin: 'مدير عام', manager: 'مدير', cashier: 'كاشير', warehouse: 'مخزن' };
 

@@ -9,7 +9,7 @@ import { useAuthStore } from '../store/authStore.ts';
 import axios from 'axios';
 
 const fmt = (v: number | string | null | undefined, dec = 2) =>
-  v != null ? parseFloat(String(v)).toLocaleString('ar-SY', { minimumFractionDigits: dec, maximumFractionDigits: dec }) : '—';
+  v != null ? parseFloat(String(v)).toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec }) : '—';
 
 const RETURN_METHOD_LABELS: Record<string, string> = {
   cash_refund:   'رد نقدي',
@@ -54,7 +54,7 @@ function ReturnDetail({ id, onClose }: { id: number; onClose: () => void }) {
                 { label: 'العميل',         value: data.customer_name ?? 'بدون عميل' },
                 { label: 'الإجمالي',       value: `${fmt(data.total_amount)} $` },
                 { label: 'السبب',          value: data.reason ?? '—' },
-                { label: 'التاريخ',        value: new Date(data.created_at).toLocaleDateString('ar-SY') },
+                { label: 'التاريخ',        value: new Date(data.created_at).toLocaleDateString('en-GB') },
               ].map(({ label, value }) => (
                 <div key={label} className="rounded-xl p-3" style={{ background: '#f8fafc' }}>
                   <div className="text-[10px] text-slate-400 mb-0.5">{label}</div>
@@ -439,7 +439,7 @@ export default function ReturnsPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-slate-400 text-xs">
-                    {new Date(r.created_at).toLocaleDateString('ar-SY')}
+                    {new Date(r.created_at).toLocaleDateString('en-GB')}
                   </td>
                   <td className="px-4 py-3">
                     <button

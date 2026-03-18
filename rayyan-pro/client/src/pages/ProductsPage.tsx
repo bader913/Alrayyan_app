@@ -18,10 +18,10 @@ import { useAuthStore } from '../store/authStore.ts';
 const UNITS = ['قطعة', 'كغ', 'غ', 'لتر', 'مل', 'علبة', 'كرتون', 'حزمة', 'متر', 'دزينة'];
 
 const fmtPrice = (v: string | null | undefined) =>
-  v ? parseFloat(v).toLocaleString('ar-SY', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : '—';
+  v ? parseFloat(v).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : '—';
 
 const fmtQty = (v: string | null | undefined, unit?: string) =>
-  v ? `${parseFloat(v).toLocaleString('ar-SY', { maximumFractionDigits: 3 })} ${unit ?? ''}`.trim() : '0';
+  v ? `${parseFloat(v).toLocaleString('en-US', { maximumFractionDigits: 3 })} ${unit ?? ''}`.trim() : '0';
 
 // ─── Stock Badge ─────────────────────────────────────────────────────────────
 
@@ -532,7 +532,7 @@ export default function ProductsPage() {
         <div>
           <h1 className="text-xl font-black text-slate-800">إدارة المنتجات</h1>
           <p className="text-xs text-slate-400 mt-0.5 font-medium">
-            {pagination ? `${pagination.total.toLocaleString('ar-SY')} منتج إجمالاً` : '...'}
+            {pagination ? `${pagination.total.toLocaleString('en-US')} منتج إجمالاً` : '...'}
           </p>
         </div>
         <div className="flex items-center gap-2">

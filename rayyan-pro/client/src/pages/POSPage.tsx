@@ -16,7 +16,7 @@ import { printInvoice } from '../utils/print.ts';
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const fmt = (n: number | string) =>
-  parseFloat(String(n)).toLocaleString('ar-SY', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  parseFloat(String(n)).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
 const PAYMENT_LABELS: Record<string, string> = {
   cash: 'نقداً', card: 'بطاقة', credit: 'آجل', mixed: 'مختلط',
@@ -1053,9 +1053,9 @@ export default function POSPage() {
 // ─── Live Time Component ──────────────────────────────────────────────────────
 
 function LiveTime() {
-  const [time, setTime] = useState(() => new Date().toLocaleTimeString('ar-SY'));
+  const [time, setTime] = useState(() => new Date().toLocaleTimeString('en-US', { hour12: false }));
   useEffect(() => {
-    const t = setInterval(() => setTime(new Date().toLocaleTimeString('ar-SY')), 1000);
+    const t = setInterval(() => setTime(new Date().toLocaleTimeString('en-US', { hour12: false })), 1000);
     return () => clearInterval(t);
   }, []);
   return <span className="text-xs font-mono text-slate-400 font-bold">{time}</span>;

@@ -6,7 +6,7 @@ const today     = new Date().toISOString().split('T')[0];
 const weekStart = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
 
 const fmtDate = (d: string) =>
-  new Date(d).toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  new Date(d).toLocaleDateString('ar-EG-u-nu-latn', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
 const ACTION_COLOR: Record<string, string> = {
   login:           'bg-green-900/40 text-green-400',

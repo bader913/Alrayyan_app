@@ -1,7 +1,7 @@
 import type { Sale } from '../api/pos.ts';
 
 const fmt = (n: string | number) =>
-  parseFloat(String(n)).toLocaleString('ar-SY', {
+  parseFloat(String(n)).toLocaleString('en-US', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   });
@@ -77,7 +77,7 @@ export function printInvoice(sale: Sale, storeName = 'ريان برو') {
     <tr>
       <td style="font-size:11px;color:#64748b;">التاريخ</td>
       <td style="text-align:left;font-size:12px;">
-        ${new Date(sale.created_at).toLocaleString('ar-SY')}
+        ${new Date(sale.created_at).toLocaleString('en-US')}
       </td>
     </tr>
     <tr>

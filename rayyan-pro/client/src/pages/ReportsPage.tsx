@@ -3,7 +3,7 @@ import { reportsApi } from '../api/reports.ts';
 import { BarChart2, FileText, Package, TrendingUp, Search, Download } from 'lucide-react';
 
 const fmt  = (v: string | number) => parseFloat(String(v)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const fmtDate = (d: string) => new Date(d).toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric' });
+const fmtDate = (d: string) => new Date(d).toLocaleDateString('ar-EG-u-nu-latn', { year: 'numeric', month: 'short', day: 'numeric' });
 
 const today    = new Date().toISOString().split('T')[0];
 const monthStart = new Date(new Date().setDate(1)).toISOString().split('T')[0];

@@ -12,7 +12,7 @@ import { apiClient } from '../api/client.ts';
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const fmt = (v: number | string | null | undefined, dec = 2) =>
-  v != null ? parseFloat(String(v)).toLocaleString('ar-SY', { minimumFractionDigits: dec, maximumFractionDigits: dec }) : '—';
+  v != null ? parseFloat(String(v)).toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec }) : '—';
 
 // ─── Product Search ───────────────────────────────────────────────────────────
 
@@ -191,7 +191,7 @@ function PurchaseDetail({ id, onClose }: { id: number; onClose: () => void }) {
                 { label: 'الإجمالي',      value: `${fmt(data.total_amount)} $` },
                 { label: 'المدفوع',       value: `${fmt(data.paid_amount)} $` },
                 { label: 'المتبقي',       value: `${fmt(data.due_amount)} $` },
-                { label: 'تاريخ الفاتورة',value: new Date(data.created_at).toLocaleDateString('ar-SY') },
+                { label: 'تاريخ الفاتورة',value: new Date(data.created_at).toLocaleDateString('en-GB') },
               ].map(({ label, value }) => (
                 <div key={label} className="rounded-xl p-3 bg-slate-700/50">
                   <div className="text-[10px] text-slate-400 mb-0.5">{label}</div>
@@ -520,7 +520,7 @@ export default function PurchasesPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-slate-400 text-xs">
-                    {new Date(p.created_at).toLocaleDateString('ar-SY')}
+                    {new Date(p.created_at).toLocaleDateString('en-GB')}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">

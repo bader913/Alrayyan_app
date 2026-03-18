@@ -3,7 +3,7 @@ import { customersApi, type Customer, type CustomerTransaction } from '../api/cu
 import { Users, Plus, Search, Eye, CreditCard, X, ChevronLeft, ChevronRight, Edit2, Filter } from 'lucide-react';
 
 const fmt = (v: string | number) => parseFloat(String(v)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const fmtDate = (d: string) => new Date(d).toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+const fmtDate = (d: string) => new Date(d).toLocaleDateString('ar-EG-u-nu-latn', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
 const TX_LABELS: Record<string, string> = { sale: 'بيع', payment: 'دفعة', return: 'مرتجع', adjustment: 'تعديل' };
 const TX_COLOR: Record<string, string>  = { sale: 'text-red-400', payment: 'text-green-400', return: 'text-blue-400', adjustment: 'text-yellow-400' };

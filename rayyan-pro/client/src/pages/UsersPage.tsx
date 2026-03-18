@@ -24,7 +24,7 @@ const ROLE_COLORS: Record<string, string> = {
 };
 
 const fmt = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleDateString('ar-SY', { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
+  iso ? new Date(iso).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
 
 // ==================== Modal ====================
 
