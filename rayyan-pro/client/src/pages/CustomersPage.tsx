@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { customersApi, type Customer, type CustomerTransaction } from '../api/customers.ts';
+import { useCurrency } from '../hooks/useCurrency.ts';
 import { Users, Plus, Search, Eye, CreditCard, X, ChevronLeft, ChevronRight, Edit2, Filter } from 'lucide-react';
 
-const fmt = (v: string | number) => parseFloat(String(v)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtDate = (d: string) => new Date(d).toLocaleDateString('ar-EG-u-nu-latn', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
 const TX_LABELS: Record<string, string> = { sale: 'بيع', payment: 'دفعة', return: 'مرتجع', adjustment: 'تعديل' };
@@ -10,6 +10,7 @@ const TX_COLOR: Record<string, string>  = { sale: 'text-red-400', payment: 'text
 const TYPE_LABELS: Record<string, string> = { retail: 'تجزئة', wholesale: 'جملة' };
 
 export default function CustomersPage() {
+  const { fmt } = useCurrency();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [search, setSearch]       = useState('');
   const [typeFilter, setTypeFilter] = useState('');
@@ -132,7 +133,7 @@ export default function CustomersPage() {
       {totalDebt > 0 && (
         <div className="bg-red-900/20 border border-red-500/30 rounded-xl p-4">
           <p className="text-sm text-red-400">إجمالي الديون المستحقة من العملاء</p>
-          <p className="text-2xl font-bold text-red-300 mt-1">${fmt(totalDebt)}</p>
+          <p className="text-2xl font-bold text-red-300 mt-1">{fmt(totalDebt)}</p>
         </div>
       )}
 
@@ -187,10 +188,10 @@ export default function CustomersPage() {
                     {TYPE_LABELS[c.customer_type]}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-left text-slate-300">${fmt(c.credit_limit)}</td>
+                <td className="px-4 py-3 text-left text-slate-300">{fmt(c.credit_limit)}</td>
                 <td className="px-4 py-3 text-left">
                   <span className={parseFloat(c.balance) > 0 ? 'text-red-400 font-semibold' : 'text-green-400'}>
-                    ${fmt(c.balance)}
+                    {fmt(c.balance)}
                   </span>
                 </td>
                 <td className="px-4 py-3">
@@ -227,11 +228,11 @@ export default function CustomersPage() {
                 <div className="flex gap-4 mt-0.5 text-sm">
                   <span className="text-slate-400">الرصيد:
                     <span className={parseFloat(accountModal.customer.balance) > 0 ? ' text-red-400 font-bold' : ' text-green-400 font-bold'}>
-                      {' '}${fmt(accountModal.customer.balance)}
+                      {' '}{fmt(accountModal.customer.balance)}
                     </span>
                   </span>
                   <span className="text-slate-400">حد الائتمان:
-                    <span className="text-slate-300"> ${fmt(accountModal.customer.credit_limit)}</span>
+                    <span className="text-slate-300"> {fmt(accountModal.customer.credit_limit)}</span>
                   </span>
                 </div>
               </div>
@@ -272,9 +273,9 @@ export default function CustomersPage() {
                         <td className={`py-2 font-medium ${TX_COLOR[tx.transaction_type] ?? 'text-slate-300'}`}>
                           {TX_LABELS[tx.transaction_type] ?? tx.transaction_type}
                         </td>
-                        <td className="py-2 text-left text-red-300">{parseFloat(tx.debit_amount) > 0 ? `$${fmt(tx.debit_amount)}` : '—'}</td>
-                        <td className="py-2 text-left text-green-300">{parseFloat(tx.credit_amount) > 0 ? `$${fmt(tx.credit_amount)}` : '—'}</td>
-                        <td className="py-2 text-left text-white font-medium">${fmt(tx.balance_after)}</td>
+                        <td className="py-2 text-left text-red-300">{parseFloat(tx.debit_amount) > 0 ? fmt(tx.debit_amount) : '—'}</td>
+                        <td className="py-2 text-left text-green-300">{parseFloat(tx.credit_amount) > 0 ? fmt(tx.credit_amount) : '—'}</td>
+                        <td className="py-2 text-left text-white font-medium">{fmt(tx.balance_after)}</td>
                         <td className="py-2 text-slate-400 text-xs max-w-xs truncate">{tx.note ?? '—'}</td>
                       </tr>
                     ))}
@@ -319,7 +320,7 @@ export default function CustomersPage() {
             <form onSubmit={submitPay} className="p-5 space-y-4">
               <div className="bg-slate-800 rounded-lg p-3 text-sm">
                 <span className="text-slate-400">الرصيد الحالي: </span>
-                <span className="text-red-400 font-bold">${fmt(payModal.balance)}</span>
+                <span className="text-red-400 font-bold">{fmt(payModal.balance)}</span>
               </div>
 
               <div className="grid grid-cols-2 gap-3">

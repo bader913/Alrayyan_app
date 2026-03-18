@@ -12,11 +12,9 @@ import {
 } from '../api/pos.ts';
 import { useProducts } from '../api/products.ts';
 import { printInvoice } from '../utils/print.ts';
+import { useCurrency } from '../hooks/useCurrency.ts';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const fmt = (n: number | string) =>
-  parseFloat(String(n)).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
 const PAYMENT_LABELS: Record<string, string> = {
   cash: 'نقداً', card: 'بطاقة', credit: 'آجل', mixed: 'مختلط',
@@ -25,6 +23,7 @@ const PAYMENT_LABELS: Record<string, string> = {
 // ─── POS Page ─────────────────────────────────────────────────────────────────
 
 export default function POSPage() {
+  const { fmt, rate, symbol } = useCurrency();
   const [view, setView] = useState<'loading' | 'open-shift' | 'pos' | 'close-shift' | 'receipt'>('loading');
 
   // ── Shift state ──────────────────────────────────────────────────────────
@@ -146,10 +145,10 @@ export default function POSPage() {
       qty = parseFloat(value);
       if (isNaN(qty) || qty <= 0) return;
     } else {
-      // amount mode: qty = amount / price
+      // amount mode: user enters display currency → convert to USD, then divide by USD price
       const amount = parseFloat(value);
       if (isNaN(amount) || amount <= 0 || price <= 0) return;
-      qty = amount / price;
+      qty = (amount / rate) / price;
     }
 
     const item = calcCartItem(product, qty, saleType, customer?.customer_type);
@@ -239,7 +238,7 @@ export default function POSPage() {
     try {
       await openShiftMut.mutateAsync({
         terminal_id:     openForm.terminal_id ? parseInt(openForm.terminal_id, 10) : null,
-        opening_balance: parseFloat(openForm.opening_balance) || 0,
+        opening_balance: (parseFloat(openForm.opening_balance) || 0) / rate,
         opening_note:    openForm.opening_note || undefined,
       });
       refetchShift();
@@ -257,7 +256,7 @@ export default function POSPage() {
     try {
       const summary = await closeShiftMut.mutateAsync({
         id:                   parseInt(currentShift.id, 10),
-        closing_cash_counted: parseFloat(closeForm.closing_cash_counted) || 0,
+        closing_cash_counted: (parseFloat(closeForm.closing_cash_counted) || 0) / rate,
         closing_note:         closeForm.closing_note || undefined,
       });
       setShiftSummary(summary);
@@ -319,7 +318,7 @@ export default function POSPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1.5">الرصيد الافتتاحي (ل.س)</label>
+              <label className="block text-sm font-bold text-slate-700 mb-1.5">الرصيد الافتتاحي ({symbol})</label>
               <input
                 type="number" min="0"
                 className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 text-left"
@@ -370,14 +369,14 @@ export default function POSPage() {
             <div className="bg-slate-50 rounded-xl p-4 space-y-2 text-sm mb-5">
               {[
                 ['عدد المبيعات', shiftSummary.sales_count],
-                ['إجمالي المبيعات', `${fmt(shiftSummary.sales_total)} ل.س`],
-                ['مبيعات نقدية', `${fmt(shiftSummary.cash_total)} ل.س`],
-                ['مبيعات بطاقة', `${fmt(shiftSummary.card_total)} ل.س`],
-                ['مبيعات آجل', `${fmt(shiftSummary.credit_total)} ل.س`],
-                ['الرصيد الافتتاحي', `${fmt(shiftSummary.opening_balance)} ل.س`],
-                ['النقد المتوقع', `${fmt(shiftSummary.expected_cash)} ل.س`],
-                ['النقد الفعلي', `${fmt(shiftSummary.closing_cash_counted)} ل.س`],
-                ['الفرق', `${fmt(shiftSummary.difference)} ل.س`],
+                ['إجمالي المبيعات', fmt(shiftSummary.sales_total)],
+                ['مبيعات نقدية', fmt(shiftSummary.cash_total)],
+                ['مبيعات بطاقة', fmt(shiftSummary.card_total)],
+                ['مبيعات آجل', fmt(shiftSummary.credit_total)],
+                ['الرصيد الافتتاحي', fmt(shiftSummary.opening_balance)],
+                ['النقد المتوقع', fmt(shiftSummary.expected_cash)],
+                ['النقد الفعلي', fmt(shiftSummary.closing_cash_counted)],
+                ['الفرق', fmt(shiftSummary.difference)],
               ].map(([label, val]) => (
                 <div key={String(label)} className="flex justify-between">
                   <span className="text-slate-500">{label}</span>
@@ -418,7 +417,7 @@ export default function POSPage() {
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1.5">النقد الفعلي (ل.س)</label>
+              <label className="block text-sm font-bold text-slate-700 mb-1.5">النقد الفعلي ({symbol})</label>
               <input
                 type="number" min="0"
                 className="w-full border border-slate-200 rounded-xl px-4 py-3 text-lg font-bold focus:outline-none focus:border-emerald-500 text-left"
@@ -486,7 +485,7 @@ export default function POSPage() {
             )}
             <div className="flex justify-between">
               <span className="text-slate-500">الإجمالي</span>
-              <span className="font-black text-lg text-slate-800">{fmt(lastSale.total_amount)} ل.س</span>
+              <span className="font-black text-lg text-slate-800">{fmt(lastSale.total_amount)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">طريقة الدفع</span>
@@ -495,19 +494,19 @@ export default function POSPage() {
             {parseFloat(lastSale.paid_amount) > 0 && (
               <div className="flex justify-between">
                 <span className="text-slate-500">المدفوع</span>
-                <span className="font-bold">{fmt(lastSale.paid_amount)} ل.س</span>
+                <span className="font-bold">{fmt(lastSale.paid_amount)}</span>
               </div>
             )}
             {saleChange > 0.001 && (
               <div className="flex justify-between">
                 <span className="text-slate-500">الباقي للعميل</span>
-                <span className="font-black text-emerald-600">{fmt(saleChange)} ل.س</span>
+                <span className="font-black text-emerald-600">{fmt(saleChange)}</span>
               </div>
             )}
             {saleDue > 0.001 && (
               <div className="flex justify-between">
                 <span className="text-slate-500">متبقي آجل</span>
-                <span className="font-black text-red-500">{fmt(saleDue)} ل.س</span>
+                <span className="font-black text-red-500">{fmt(saleDue)}</span>
               </div>
             )}
           </div>
@@ -627,7 +626,7 @@ export default function POSPage() {
                     </div>
                   </div>
                   <div className="text-left flex-shrink-0">
-                    <div className="text-sm font-black text-emerald-700">{fmt(resolved.price)} ل.س</div>
+                    <div className="text-sm font-black text-emerald-700">{fmt(resolved.price)}</div>
                     {resolved.type === 'wholesale' && (
                       <div className="text-[10px] text-cyan-600 font-bold">جملة</div>
                     )}
@@ -681,7 +680,7 @@ export default function POSPage() {
                       <div className="font-bold text-slate-800">{c.name}</div>
                       <div className="text-xs text-slate-400">
                         {c.phone} · {c.customer_type === 'wholesale' ? 'جملة' : 'مفرق'}
-                        {parseFloat(c.balance) > 0 && <span className="text-red-500 mr-2">رصيد: {fmt(c.balance)}</span>}
+                        {parseFloat(c.balance) > 0 && <span className="text-red-500 mr-2">رصيد: {fmt(parseFloat(c.balance))}</span>}
                       </div>
                     </button>
                   ))}
@@ -799,7 +798,7 @@ export default function POSPage() {
                   <button onClick={() => removeItem(item._id)} className="text-slate-300 hover:text-red-500">
                     <X size={15} />
                   </button>
-                  <span className="text-sm font-black text-slate-800">{fmt(item.total)} ل.س</span>
+                  <span className="text-sm font-black text-slate-800">{fmt(item.total)}</span>
                   {item.item_discount > 0 && (
                     <span className="text-[10px] text-red-400">خصم: {fmt(item.item_discount)}</span>
                   )}
@@ -821,23 +820,23 @@ export default function POSPage() {
             {/* Totals row */}
             <div className="flex items-center gap-3 text-sm">
               <span className="text-slate-500 flex-shrink-0">مجموع</span>
-              <span className="font-bold text-slate-700">{fmt(subtotal)} ل.س</span>
+              <span className="font-bold text-slate-700">{fmt(subtotal)}</span>
               <span className="text-slate-400 flex-shrink-0 mr-auto">خصم</span>
               <div className="relative w-28">
                 <input
                   type="number" min="0"
                   className="w-full text-left pl-8 pr-2 py-1.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-emerald-500"
                   placeholder="0"
-                  value={saleDiscount || ''}
-                  onChange={(e) => setSaleDiscount(parseFloat(e.target.value) || 0)}
+                  value={saleDiscount * rate || ''}
+                  onChange={(e) => setSaleDiscount((parseFloat(e.target.value) || 0) / rate)}
                 />
-                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">ل.س</span>
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">{symbol}</span>
               </div>
             </div>
 
             <div className="flex items-center justify-between">
               <span className="text-base font-black text-slate-800">الإجمالي</span>
-              <span className="text-xl font-black text-emerald-700">{fmt(total)} ل.س</span>
+              <span className="text-xl font-black text-emerald-700">{fmt(total)}</span>
             </div>
 
             {/* Payment method */}
@@ -866,19 +865,19 @@ export default function POSPage() {
                   <input
                     type="number" min="0"
                     className="w-full text-left pl-8 pr-2 py-1.5 border border-slate-200 rounded-lg text-sm font-bold focus:outline-none focus:border-emerald-500"
-                    value={paidAmount || ''}
-                    onChange={(e) => setPaidAmount(parseFloat(e.target.value) || 0)}
+                    value={paidAmount * rate || ''}
+                    onChange={(e) => setPaidAmount((parseFloat(e.target.value) || 0) / rate)}
                   />
-                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">ل.س</span>
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">{symbol}</span>
                 </div>
                 {change > 0.001 && (
                   <div className="flex-shrink-0 text-sm font-black text-emerald-700">
-                    باقي: {fmt(change)} ل.س
+                    باقي: {fmt(change)}
                   </div>
                 )}
                 {due > 0.001 && (
                   <div className="flex-shrink-0 text-sm font-black text-red-500">
-                    آجل: {fmt(due)} ل.س
+                    آجل: {fmt(due)}
                   </div>
                 )}
               </div>
@@ -896,7 +895,7 @@ export default function POSPage() {
               className="w-full py-3.5 rounded-xl text-white font-black text-base transition-opacity disabled:opacity-50"
               style={{ background: '#059669' }}
             >
-              {createSaleMut.isPending ? 'جارٍ الحفظ...' : `إتمام البيع · ${fmt(total)} ل.س`}
+              {createSaleMut.isPending ? 'جارٍ الحفظ...' : `إتمام البيع · ${fmt(total)}`}
             </button>
           </div>
         </div>
@@ -910,7 +909,7 @@ export default function POSPage() {
               <div>
                 <h3 className="font-black text-slate-800">{weightModal.product.name}</h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  السعر: {fmt(parseFloat(weightModal.product.retail_price))} ل.س / {weightModal.product.unit}
+                  السعر: {fmt(parseFloat(weightModal.product.retail_price))} / {weightModal.product.unit}
                 </p>
               </div>
               <button onClick={() => setWeightModal({ product: null, mode: 'weight', value: '' })}>
@@ -944,7 +943,7 @@ export default function POSPage() {
               <label className="block text-sm font-bold text-slate-700 mb-1.5">
                 {weightModal.mode === 'weight'
                   ? `الوزن (${weightModal.product.unit})`
-                  : 'المبلغ المطلوب (ل.س)'}
+                  : `المبلغ المطلوب (${symbol})`}
               </label>
               <input
                 type="number" min="0.001" step={weightModal.mode === 'weight' ? '0.001' : '1'}
@@ -965,7 +964,7 @@ export default function POSPage() {
                 qty = parseFloat(weightModal.value);
                 amount = qty * price;
               } else {
-                amount = parseFloat(weightModal.value);
+                amount = parseFloat(weightModal.value) / rate;
                 qty = price > 0 ? amount / price : 0;
               }
               return (
@@ -973,7 +972,7 @@ export default function POSPage() {
                   <span className="text-slate-600">
                     {qty.toFixed(3)} {weightModal.product!.unit}
                   </span>
-                  <span className="font-black text-emerald-700">{fmt(amount)} ل.س</span>
+                  <span className="font-black text-emerald-700">{fmt(amount)}</span>
                 </div>
               );
             })()}

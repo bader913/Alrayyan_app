@@ -6,9 +6,10 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { returnsApi, type SaleReturn, type SaleForReturn } from '../api/returns.ts';
 import { useAuthStore } from '../store/authStore.ts';
+import { useCurrency } from '../hooks/useCurrency.ts';
 import axios from 'axios';
 
-const fmt = (v: number | string | null | undefined, dec = 2) =>
+const fmtQty = (v: number | string | null | undefined, dec = 0) =>
   v != null ? parseFloat(String(v)).toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec }) : '—';
 
 const RETURN_METHOD_LABELS: Record<string, string> = {
@@ -26,6 +27,7 @@ const RETURN_METHOD_COLORS: Record<string, { bg: string; color: string }> = {
 // ─── Return Detail Modal ──────────────────────────────────────────────────────
 
 function ReturnDetail({ id, onClose }: { id: number; onClose: () => void }) {
+  const { fmt } = useCurrency();
   const { data } = useQuery({
     queryKey: ['return-detail', id],
     queryFn: async () => {
@@ -52,7 +54,7 @@ function ReturnDetail({ id, onClose }: { id: number; onClose: () => void }) {
                 { label: 'رقم المرتجع',   value: data.return_number },
                 { label: 'فاتورة البيع',  value: data.sale_invoice },
                 { label: 'العميل',         value: data.customer_name ?? 'بدون عميل' },
-                { label: 'الإجمالي',       value: `${fmt(data.total_amount)} $` },
+                { label: 'الإجمالي',       value: fmt(data.total_amount) },
                 { label: 'السبب',          value: data.reason ?? '—' },
                 { label: 'التاريخ',        value: new Date(data.created_at).toLocaleDateString('en-GB') },
               ].map(({ label, value }) => (
@@ -79,7 +81,7 @@ function ReturnDetail({ id, onClose }: { id: number; onClose: () => void }) {
                 {data.items?.map((item) => (
                   <tr key={item.id} className="border-b" style={{ borderColor: '#f1f5f9' }}>
                     <td className="px-3 py-2 font-bold text-slate-700">{item.product_name}</td>
-                    <td className="px-3 py-2 text-slate-600">{fmt(item.quantity, 0)} {item.unit}</td>
+                    <td className="px-3 py-2 text-slate-600">{fmtQty(item.quantity, 0)} {item.unit}</td>
                     <td className="px-3 py-2 text-slate-600">{fmt(item.unit_price)}</td>
                     <td className="px-3 py-2 font-bold text-rose-700">{fmt(item.total_price)}</td>
                   </tr>
@@ -107,6 +109,7 @@ interface ReturnItemRow {
 }
 
 function CreateReturnModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
+  const { fmt } = useCurrency();
   const qc = useQueryClient();
   const [saleIdInput, setSaleIdInput] = useState('');
   const [sale, setSale]               = useState<SaleForReturn | null>(null);
@@ -203,7 +206,7 @@ function CreateReturnModal({ onClose, onDone }: { onClose: () => void; onDone: (
                 <div className="flex items-center gap-4 text-sm">
                   <div><span className="text-slate-500">فاتورة: </span><span className="font-black text-slate-700">{sale.invoice_number}</span></div>
                   <div><span className="text-slate-500">العميل: </span><span className="font-bold">{sale.customer_name ?? 'بدون'}</span></div>
-                  <div><span className="text-slate-500">الإجمالي: </span><span className="font-black text-emerald-700">{fmt(sale.total_amount)} $</span></div>
+                  <div><span className="text-slate-500">الإجمالي: </span><span className="font-black text-emerald-700">{fmt(sale.total_amount)}</span></div>
                 </div>
               </div>
 
@@ -232,7 +235,7 @@ function CreateReturnModal({ onClose, onDone }: { onClose: () => void; onDone: (
                           />
                         </td>
                         <td className="px-3 py-2 font-bold text-slate-700">{item.product_name}</td>
-                        <td className="px-3 py-2 text-slate-500">{fmt(item.max_qty, 0)} {item.unit}</td>
+                        <td className="px-3 py-2 text-slate-500">{fmtQty(item.max_qty)} {item.unit}</td>
                         <td className="px-3 py-2 w-24">
                           <input
                             type="number"
@@ -263,7 +266,7 @@ function CreateReturnModal({ onClose, onDone }: { onClose: () => void; onDone: (
                     <tfoot>
                       <tr style={{ background: '#fef2f2' }}>
                         <td colSpan={5} className="px-3 py-2.5 font-black text-slate-700 text-sm">إجمالي المرتجع</td>
-                        <td className="px-3 py-2.5 font-black text-rose-700">{fmt(total)} $</td>
+                        <td className="px-3 py-2.5 font-black text-rose-700">{fmt(total)}</td>
                       </tr>
                     </tfoot>
                   )}
@@ -335,7 +338,7 @@ function CreateReturnModal({ onClose, onDone }: { onClose: () => void; onDone: (
             {selectedItems.length > 0 && (
               <>
                 <span className="text-slate-500">إجمالي المرتجع: </span>
-                <span className="font-black text-rose-700">{fmt(total)} $</span>
+                <span className="font-black text-rose-700">{fmt(total)}</span>
               </>
             )}
           </div>
@@ -362,6 +365,7 @@ function CreateReturnModal({ onClose, onDone }: { onClose: () => void; onDone: (
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ReturnsPage() {
+  const { fmt } = useCurrency();
   const [page, setPage]             = useState(1);
   const [showCreate, setShowCreate] = useState(false);
   const [viewId, setViewId]         = useState<number | null>(null);
@@ -429,7 +433,7 @@ export default function ReturnsPage() {
                   <td className="px-4 py-3 text-slate-700 font-bold truncate max-w-[120px]">
                     {r.customer_name ?? '—'}
                   </td>
-                  <td className="px-4 py-3 font-bold text-rose-700">{fmt(r.total_amount)} $</td>
+                  <td className="px-4 py-3 font-bold text-rose-700">{fmt(r.total_amount)}</td>
                   <td className="px-4 py-3">
                     <span
                       className="inline-block px-2.5 py-1 rounded-full text-xs font-bold"

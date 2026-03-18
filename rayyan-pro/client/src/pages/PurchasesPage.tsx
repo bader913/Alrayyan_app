@@ -7,11 +7,12 @@ import axios from 'axios';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { purchasesApi, type Purchase, type PurchaseItemInput } from '../api/purchases.ts';
 import { useAuthStore } from '../store/authStore.ts';
+import { useCurrency } from '../hooks/useCurrency.ts';
 import { apiClient } from '../api/client.ts';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const fmt = (v: number | string | null | undefined, dec = 2) =>
+const fmtRaw = (v: number | string | null | undefined, dec = 2) =>
   v != null ? parseFloat(String(v)).toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec }) : '—';
 
 // ─── Product Search ───────────────────────────────────────────────────────────
@@ -57,10 +58,10 @@ function ProductSearch({ onSelect }: { onSelect: (p: ProductRow) => void }) {
               <Package size={14} className="text-slate-400 flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <div className="font-bold text-slate-200 truncate">{p.name}</div>
-                <div className="text-[11px] text-slate-400">{p.barcode || 'بدون باركود'} · مخزون: {fmt(p.stock_quantity, 0)} {p.unit}</div>
+                <div className="text-[11px] text-slate-400">{p.barcode || 'بدون باركود'} · مخزون: {fmtRaw(p.stock_quantity, 0)} {p.unit}</div>
               </div>
               <div className="text-xs font-bold text-emerald-400 flex-shrink-0">
-                {fmt(p.purchase_price)}
+                $ {fmtRaw(p.purchase_price)}
               </div>
             </button>
           ))}
@@ -102,6 +103,7 @@ function PaymentModal({
   onClose: () => void;
   onDone: () => void;
 }) {
+  const { fmt, rate, symbol } = useCurrency();
   const qc = useQueryClient();
   const [amount, setAmount] = useState('');
   const [error, setError] = useState('');
@@ -109,7 +111,7 @@ function PaymentModal({
   const due = parseFloat(String(purchase.due_amount));
 
   const mutation = useMutation({
-    mutationFn: () => purchasesApi.addPayment(purchase.id, parseFloat(amount)),
+    mutationFn: () => purchasesApi.addPayment(purchase.id, (parseFloat(amount) || 0) / rate),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['purchases'] }); onDone(); },
     onError: (e: unknown) => {
       if (axios.isAxiosError(e)) setError(e.response?.data?.message ?? 'حدث خطأ');
@@ -126,17 +128,17 @@ function PaymentModal({
 
         <div className="mb-4 p-3 rounded-xl bg-slate-700/60">
           <div className="text-xs text-slate-400 mb-1">فاتورة: <span className="font-bold text-slate-200">{purchase.invoice_number}</span></div>
-          <div className="text-xs text-slate-400">المتبقي: <span className="font-black text-rose-400">{fmt(due)} $</span></div>
+          <div className="text-xs text-slate-400">المتبقي: <span className="font-black text-rose-400">{fmt(due)}</span></div>
         </div>
 
-        <label className="block text-xs font-bold text-slate-400 mb-1.5">المبلغ المدفوع</label>
+        <label className="block text-xs font-bold text-slate-400 mb-1.5">المبلغ المدفوع ({symbol})</label>
         <input
           type="number"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           className="w-full rounded-xl border border-slate-600 bg-slate-700/50 px-3 py-2.5 text-sm outline-none focus:border-emerald-500 text-slate-200"
           placeholder={`الحد الأقصى ${fmt(due)}`}
-          max={due}
+          max={due * rate}
           min={0.01}
           step={0.01}
         />
@@ -164,6 +166,7 @@ function PaymentModal({
 // ─── Purchase Detail Modal ────────────────────────────────────────────────────
 
 function PurchaseDetail({ id, onClose }: { id: number; onClose: () => void }) {
+  const { fmt } = useCurrency();
   const { data } = useQuery({
     queryKey: ['purchase-detail', id],
     queryFn: async () => {
@@ -188,9 +191,9 @@ function PurchaseDetail({ id, onClose }: { id: number; onClose: () => void }) {
               {[
                 { label: 'رقم الفاتورة', value: data.invoice_number },
                 { label: 'المورد',        value: data.supplier_name ?? 'بدون مورد' },
-                { label: 'الإجمالي',      value: `${fmt(data.total_amount)} $` },
-                { label: 'المدفوع',       value: `${fmt(data.paid_amount)} $` },
-                { label: 'المتبقي',       value: `${fmt(data.due_amount)} $` },
+                { label: 'الإجمالي',      value: fmt(data.total_amount) },
+                { label: 'المدفوع',       value: fmt(data.paid_amount) },
+                { label: 'المتبقي',       value: fmt(data.due_amount) },
                 { label: 'تاريخ الفاتورة',value: new Date(data.created_at).toLocaleDateString('en-GB') },
               ].map(({ label, value }) => (
                 <div key={label} className="rounded-xl p-3 bg-slate-700/50">
@@ -213,7 +216,7 @@ function PurchaseDetail({ id, onClose }: { id: number; onClose: () => void }) {
                   {data.items?.map((item) => (
                     <tr key={item.id} className="border-b border-slate-700">
                       <td className="px-3 py-2 font-bold text-slate-200">{item.product_name}</td>
-                      <td className="px-3 py-2 text-slate-300">{fmt(item.quantity, 0)} {item.unit}</td>
+                      <td className="px-3 py-2 text-slate-300">{fmtRaw(item.quantity, 0)} {item.unit}</td>
                       <td className="px-3 py-2 text-slate-300">{fmt(item.unit_price)}</td>
                       <td className="px-3 py-2 font-bold text-emerald-400">{fmt(item.total_price)}</td>
                     </tr>
@@ -237,6 +240,7 @@ function PurchaseDetail({ id, onClose }: { id: number; onClose: () => void }) {
 // ─── Create Purchase Modal ────────────────────────────────────────────────────
 
 function CreatePurchaseModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
+  const { fmt, rate, symbol } = useCurrency();
   const qc = useQueryClient();
   const { data: suppliers = [] } = useSuppliers();
   const [supplierId, setSupplierId] = useState<number | ''>('');
@@ -260,12 +264,14 @@ function CreatePurchaseModal({ onClose, onDone }: { onClose: () => void; onDone:
     });
   };
 
+  const paidUSD = (parseFloat(paidAmount) || 0) / rate;
+
   const mutation = useMutation({
     mutationFn: () =>
       purchasesApi.create({
         supplier_id:       supplierId || null,
         items:             items.map(({ product_id, quantity, unit_price }) => ({ product_id, quantity, unit_price })),
-        paid_amount:       parseFloat(paidAmount) || 0,
+        paid_amount:       paidUSD,
         purchase_currency: 'USD',
         exchange_rate:     1,
         notes:             notes || undefined,
@@ -357,7 +363,7 @@ function CreatePurchaseModal({ onClose, onDone }: { onClose: () => void; onDone:
                 <tfoot>
                   <tr className="bg-emerald-900/20">
                     <td colSpan={3} className="px-3 py-2.5 font-black text-slate-300 text-sm">الإجمالي</td>
-                    <td colSpan={2} className="px-3 py-2.5 font-black text-emerald-400">{fmt(total)} $</td>
+                    <td colSpan={2} className="px-3 py-2.5 font-black text-emerald-400">{fmt(total)}</td>
                   </tr>
                 </tfoot>
               </table>
@@ -367,7 +373,7 @@ function CreatePurchaseModal({ onClose, onDone }: { onClose: () => void; onDone:
           {/* Payment + Notes */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-400 mb-1.5">المبلغ المدفوع الآن</label>
+              <label className="block text-xs font-bold text-slate-400 mb-1.5">المبلغ المدفوع الآن ({symbol})</label>
               <input
                 type="number"
                 value={paidAmount}
@@ -376,9 +382,9 @@ function CreatePurchaseModal({ onClose, onDone }: { onClose: () => void; onDone:
                 min={0}
                 step={0.01}
               />
-              {parseFloat(paidAmount) < total && total > 0 && (
+              {paidUSD < total && total > 0 && (
                 <div className="mt-1 text-xs text-rose-400 font-bold">
-                  متبقي: {fmt(total - (parseFloat(paidAmount) || 0))} $
+                  متبقي: {fmt(total - paidUSD)}
                 </div>
               )}
             </div>
@@ -405,7 +411,7 @@ function CreatePurchaseModal({ onClose, onDone }: { onClose: () => void; onDone:
         <div className="flex items-center justify-between px-6 py-4 border-t border-slate-700 bg-slate-900/40 flex-shrink-0">
           <div className="text-sm">
             <span className="text-slate-400">الإجمالي: </span>
-            <span className="font-black text-emerald-400">{fmt(total)} $</span>
+            <span className="font-black text-emerald-400">{fmt(total)}</span>
           </div>
           <div className="flex gap-2">
             <button onClick={onClose} className="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-300 hover:bg-slate-700 transition-colors">
@@ -429,6 +435,7 @@ function CreatePurchaseModal({ onClose, onDone }: { onClose: () => void; onDone:
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function PurchasesPage() {
+  const { fmt } = useCurrency();
   const user = useAuthStore((s) => s.user);
   const canCreate = user && ['admin', 'manager', 'warehouse'].includes(user.role);
   const canPay    = user && ['admin', 'manager'].includes(user.role);
@@ -506,8 +513,8 @@ export default function PurchasesPage() {
                       <span className="font-bold text-slate-200 truncate max-w-[130px]">{p.supplier_name ?? 'بدون مورد'}</span>
                     </div>
                   </td>
-                  <td className="px-4 py-3 font-bold text-slate-200">{fmt(p.total_amount)} $</td>
-                  <td className="px-4 py-3 font-bold text-emerald-400">{fmt(p.paid_amount)} $</td>
+                  <td className="px-4 py-3 font-bold text-slate-200">{fmt(p.total_amount)}</td>
+                  <td className="px-4 py-3 font-bold text-emerald-400">{fmt(p.paid_amount)}</td>
                   <td className="px-4 py-3">
                     <span
                       className={`inline-block px-2.5 py-1 rounded-full text-xs font-bold ${
@@ -516,7 +523,7 @@ export default function PurchasesPage() {
                           : 'bg-rose-900/40 text-rose-400'
                       }`}
                     >
-                      {isPaid ? '✓ مسدد' : `${fmt(due)} $`}
+                      {isPaid ? '✓ مسدد' : fmt(due)}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-slate-400 text-xs">

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { reportsApi } from '../api/reports.ts';
+import { useCurrency } from '../hooks/useCurrency.ts';
 import { BarChart2, FileText, Package, TrendingUp, Search, Download } from 'lucide-react';
 
-const fmt  = (v: string | number) => parseFloat(String(v)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtUSD  = (v: string | number) => `${parseFloat(String(v)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $`;
 const fmtDate = (d: string) => new Date(d).toLocaleDateString('ar-EG-u-nu-latn', { year: 'numeric', month: 'short', day: 'numeric' });
 
 const today    = new Date().toISOString().split('T')[0];
@@ -11,6 +12,7 @@ const monthStart = new Date(new Date().setDate(1)).toISOString().split('T')[0];
 type ReportTab = 'sales' | 'purchases' | 'stock' | 'profit';
 
 export default function ReportsPage() {
+  const { fmt } = useCurrency();
   const [tab, setTab] = useState<ReportTab>('sales');
 
   // Dates
@@ -107,9 +109,9 @@ export default function ReportsPage() {
           {salesData && (
             <>
               <SummaryCards cards={[
-                { label: 'إجمالي المبيعات',    value: `$${fmt(salesData.summary.totalRevenue)}`,  color: 'text-green-400' },
-                { label: 'المبالغ المحصلة',    value: `$${fmt(salesData.summary.totalPaid)}`,     color: 'text-blue-400'  },
-                { label: 'إجمالي الخصومات',    value: `$${fmt(salesData.summary.totalDiscount)}`, color: 'text-yellow-400'},
+                { label: 'إجمالي المبيعات',    value: fmt(salesData.summary.totalRevenue),  color: 'text-green-400' },
+                { label: 'المبالغ المحصلة',    value: fmt(salesData.summary.totalPaid),     color: 'text-blue-400'  },
+                { label: 'إجمالي الخصومات',    value: fmt(salesData.summary.totalDiscount), color: 'text-yellow-400'},
                 { label: 'عدد الفواتير',        value: String(salesData.summary.invoiceCount),    color: 'text-white'     },
               ]} />
               <TableHeader title={`${salesData.total} فاتورة`} onExport={() => exportCSV(
@@ -139,8 +141,8 @@ export default function ReportsPage() {
                           <td className="px-4 py-2 font-mono text-blue-400 text-xs">{r.invoice_number}</td>
                           <td className="px-4 py-2 text-slate-300">{r.customer_name ?? 'زبون نقدي'}</td>
                           <td className="px-4 py-2 text-slate-400 text-xs">{r.cashier_name ?? '—'}</td>
-                          <td className="px-4 py-2 text-left text-white font-medium">${fmt(r.total_amount)}</td>
-                          <td className="px-4 py-2 text-left text-green-400">${fmt(r.paid_amount)}</td>
+                          <td className="px-4 py-2 text-left text-white font-medium">{fmt(r.total_amount)}</td>
+                          <td className="px-4 py-2 text-left text-green-400">{fmt(r.paid_amount)}</td>
                           <td className="px-4 py-2">
                             <StatusBadge status={r.payment_status} />
                           </td>
@@ -169,9 +171,9 @@ export default function ReportsPage() {
           {purData && (
             <>
               <SummaryCards cards={[
-                { label: 'إجمالي المشتريات', value: `$${fmt(purData.summary.totalAmount)}`, color: 'text-amber-400' },
-                { label: 'المدفوع للموردين', value: `$${fmt(purData.summary.totalPaid)}`,   color: 'text-green-400' },
-                { label: 'المستحق للموردين', value: `$${fmt(purData.summary.totalDebt)}`,   color: 'text-red-400'   },
+                { label: 'إجمالي المشتريات', value: fmt(purData.summary.totalAmount), color: 'text-amber-400' },
+                { label: 'المدفوع للموردين', value: fmt(purData.summary.totalPaid),   color: 'text-green-400' },
+                { label: 'المستحق للموردين', value: fmt(purData.summary.totalDebt),   color: 'text-red-400'   },
                 { label: 'عدد الفواتير',     value: String(purData.summary.count),           color: 'text-white'     },
               ]} />
               <TableHeader title={`${purData.total} فاتورة`} onExport={() => exportCSV(
@@ -199,8 +201,8 @@ export default function ReportsPage() {
                         <tr key={r.id} className="border-t border-slate-700">
                           <td className="px-4 py-2 font-mono text-amber-400 text-xs">{r.invoice_number}</td>
                           <td className="px-4 py-2 text-slate-300">{r.supplier_name ?? '—'}</td>
-                          <td className="px-4 py-2 text-left text-white font-medium">${fmt(r.total_amount)}</td>
-                          <td className="px-4 py-2 text-left text-green-400">${fmt(r.paid_amount)}</td>
+                          <td className="px-4 py-2 text-left text-white font-medium">{fmt(r.total_amount)}</td>
+                          <td className="px-4 py-2 text-left text-green-400">{fmt(r.paid_amount)}</td>
                           <td className="px-4 py-2"><StatusBadge status={r.payment_status} /></td>
                           <td className="px-4 py-2 text-slate-400 text-xs">{fmtDate(r.created_at)}</td>
                         </tr>
@@ -238,7 +240,7 @@ export default function ReportsPage() {
             <>
               <SummaryCards cards={[
                 { label: 'عدد الأصناف',     value: String(stockData.summary.totalProducts),            color: 'text-white'     },
-                { label: 'قيمة المخزون',    value: `$${fmt(stockData.summary.totalStockValue)}`,       color: 'text-blue-400'  },
+                { label: 'قيمة المخزون',    value: fmtUSD(stockData.summary.totalStockValue),       color: 'text-blue-400'  },
                 { label: 'أصناف قاربت النفاد', value: String(stockData.summary.lowStockCount),           color: 'text-yellow-400'},
               ]} />
               <TableHeader title={`${stockData.data.length} صنف`} onExport={() => exportCSV(
@@ -275,9 +277,9 @@ export default function ReportsPage() {
                               {r.stock_quantity}
                             </td>
                             <td className="px-4 py-2 text-left text-slate-400">{r.min_stock_level}</td>
-                            <td className="px-4 py-2 text-left text-slate-300">${fmt(r.purchase_price)}</td>
-                            <td className="px-4 py-2 text-left text-slate-300">${fmt(r.wholesale_price)}</td>
-                            <td className="px-4 py-2 text-left text-slate-300">${fmt(r.retail_price)}</td>
+                            <td className="px-4 py-2 text-left text-slate-300">{fmtUSD(r.purchase_price)}</td>
+                            <td className="px-4 py-2 text-left text-slate-300">{fmtUSD(r.wholesale_price)}</td>
+                            <td className="px-4 py-2 text-left text-slate-300">{fmtUSD(r.retail_price)}</td>
                           </tr>
                         );
                       })}
@@ -303,9 +305,9 @@ export default function ReportsPage() {
           {profitData && (
             <>
               <SummaryCards cards={[
-                { label: 'إجمالي الإيرادات', value: `$${fmt(profitData.summary.totalRevenue)}`, color: 'text-green-400'  },
-                { label: 'إجمالي التكلفة',  value: `$${fmt(profitData.summary.totalCost)}`,    color: 'text-red-400'    },
-                { label: 'إجمالي الربح',     value: `$${fmt(profitData.summary.grossProfit)}`,  color: profitData.summary.grossProfit >= 0 ? 'text-emerald-400' : 'text-red-400' },
+                { label: 'إجمالي الإيرادات', value: fmt(profitData.summary.totalRevenue), color: 'text-green-400'  },
+                { label: 'إجمالي التكلفة',  value: fmt(profitData.summary.totalCost),    color: 'text-red-400'    },
+                { label: 'إجمالي الربح',     value: fmt(profitData.summary.grossProfit),  color: profitData.summary.grossProfit >= 0 ? 'text-emerald-400' : 'text-red-400' },
                 { label: 'هامش الربح',       value: `${profitData.summary.margin}%`,            color: 'text-sky-400'    },
               ]} />
               <TableHeader title={`${profitData.data.length} منتج`} onExport={() => exportCSV(
@@ -336,10 +338,10 @@ export default function ReportsPage() {
                             <td className="px-4 py-2 text-white">{r.product_name}</td>
                             <td className="px-4 py-2 font-mono text-slate-400 text-xs">{r.barcode}</td>
                             <td className="px-4 py-2 text-left text-slate-300">{r.total_sold}</td>
-                            <td className="px-4 py-2 text-left text-green-400">${fmt(r.total_revenue)}</td>
-                            <td className="px-4 py-2 text-left text-red-400">${fmt(r.total_cost)}</td>
+                            <td className="px-4 py-2 text-left text-green-400">{fmt(r.total_revenue)}</td>
+                            <td className="px-4 py-2 text-left text-red-400">{fmt(r.total_cost)}</td>
                             <td className={`px-4 py-2 text-left font-bold ${profit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                              ${fmt(r.gross_profit)}
+                              {fmt(r.gross_profit)}
                             </td>
                           </tr>
                         );

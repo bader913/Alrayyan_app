@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { suppliersApi, type Supplier, type SupplierTransaction } from '../api/suppliers.ts';
+import { useCurrency } from '../hooks/useCurrency.ts';
 import { Truck, Plus, Search, Eye, CreditCard, X, ChevronLeft, ChevronRight, Edit2 } from 'lucide-react';
 
-const fmt = (v: string | number) => parseFloat(String(v)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtDate = (d: string) => new Date(d).toLocaleDateString('ar-EG-u-nu-latn', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
 const TX_LABELS: Record<string, string> = { purchase: 'مشتريات', payment: 'دفعة', adjustment: 'تعديل' };
 const TX_COLOR: Record<string, string> = { purchase: 'text-red-400', payment: 'text-green-400', adjustment: 'text-yellow-400' };
 
 export default function SuppliersPage() {
+  const { fmt } = useCurrency();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [search, setSearch]       = useState('');
   const [loading, setLoading]     = useState(true);
@@ -153,7 +154,7 @@ export default function SuppliersPage() {
                 <td className="px-4 py-3 text-slate-400 max-w-xs truncate">{s.address ?? '—'}</td>
                 <td className="px-4 py-3 text-left">
                   <span className={parseFloat(s.balance) > 0 ? 'text-red-400 font-semibold' : 'text-green-400'}>
-                    ${fmt(s.balance)}
+                    {fmt(s.balance)}
                   </span>
                 </td>
                 <td className="px-4 py-3">
@@ -190,7 +191,7 @@ export default function SuppliersPage() {
                 <p className="text-sm text-slate-400 mt-0.5">
                   الرصيد المستحق:
                   <span className={parseFloat(accountModal.supplier.balance) > 0 ? ' text-red-400 font-bold' : ' text-green-400 font-bold'}>
-                    {' '}${fmt(accountModal.supplier.balance)}
+                    {' '}{fmt(accountModal.supplier.balance)}
                   </span>
                 </p>
               </div>
@@ -231,9 +232,9 @@ export default function SuppliersPage() {
                         <td className={`py-2 font-medium ${TX_COLOR[tx.transaction_type] ?? 'text-slate-300'}`}>
                           {TX_LABELS[tx.transaction_type] ?? tx.transaction_type}
                         </td>
-                        <td className="py-2 text-left text-red-300">{parseFloat(tx.debit_amount) > 0 ? `$${fmt(tx.debit_amount)}` : '—'}</td>
-                        <td className="py-2 text-left text-green-300">{parseFloat(tx.credit_amount) > 0 ? `$${fmt(tx.credit_amount)}` : '—'}</td>
-                        <td className="py-2 text-left text-white font-medium">${fmt(tx.balance_after)}</td>
+                        <td className="py-2 text-left text-red-300">{parseFloat(tx.debit_amount) > 0 ? fmt(tx.debit_amount) : '—'}</td>
+                        <td className="py-2 text-left text-green-300">{parseFloat(tx.credit_amount) > 0 ? fmt(tx.credit_amount) : '—'}</td>
+                        <td className="py-2 text-left text-white font-medium">{fmt(tx.balance_after)}</td>
                         <td className="py-2 text-slate-400 text-xs max-w-xs truncate">{tx.note ?? '—'}</td>
                       </tr>
                     ))}
@@ -279,7 +280,7 @@ export default function SuppliersPage() {
             <form onSubmit={submitPay} className="p-5 space-y-4">
               <div className="bg-slate-800 rounded-lg p-3 text-sm">
                 <span className="text-slate-400">الرصيد الحالي: </span>
-                <span className="text-red-400 font-bold">${fmt(payModal.balance)}</span>
+                <span className="text-red-400 font-bold">{fmt(payModal.balance)}</span>
               </div>
 
               <div className="grid grid-cols-2 gap-3">

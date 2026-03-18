@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { dashboardApi, type DashboardStats } from '../api/dashboard.ts';
 import { useAuthStore } from '../store/authStore.ts';
+import { useCurrency } from '../hooks/useCurrency.ts';
 import {
   ShoppingCart, TrendingUp, Package, AlertTriangle,
   DollarSign, Users, Truck, ArrowUp, ArrowDown,
 } from 'lucide-react';
 
-const fmt  = (v: number) => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtN = (v: number) => v.toLocaleString('en-US');
 const fmtDate = (d: string) => new Date(d).toLocaleDateString('ar-EG-u-nu-latn', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
@@ -15,6 +15,7 @@ const ROLE_LABELS: Record<string, string> = { admin: 'مدير عام', manager:
 export default function DashboardPage() {
   const user = useAuthStore((s) => s.user);
   const isManager = user?.role === 'admin' || user?.role === 'manager';
+  const { fmt } = useCurrency();
 
   const [stats, setStats]   = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -58,21 +59,21 @@ export default function DashboardPage() {
               icon={<ShoppingCart className="w-5 h-5" />}
               color="text-blue-400" bg="bg-blue-900/20"
               label="مبيعات اليوم"
-              value={`$${fmt(stats.sales.today.total)}`}
+              value={fmt(stats.sales.today.total)}
               sub={`${fmtN(stats.sales.today.count)} فاتورة`}
             />
             <KpiCard
               icon={<TrendingUp className="w-5 h-5" />}
               color="text-green-400" bg="bg-green-900/20"
               label="مبيعات الشهر"
-              value={`$${fmt(stats.sales.month.total)}`}
+              value={fmt(stats.sales.month.total)}
               sub={`${fmtN(stats.sales.month.count)} فاتورة`}
             />
             <KpiCard
               icon={<Truck className="w-5 h-5" />}
               color="text-amber-400" bg="bg-amber-900/20"
               label="مشتريات الشهر"
-              value={`$${fmt(stats.purchases.month.total)}`}
+              value={fmt(stats.purchases.month.total)}
               sub={`${fmtN(stats.purchases.month.count)} فاتورة`}
             />
             <KpiCard
@@ -80,7 +81,7 @@ export default function DashboardPage() {
               color={stats.cashFlow.net >= 0 ? 'text-emerald-400' : 'text-red-400'}
               bg={stats.cashFlow.net >= 0 ? 'bg-emerald-900/20' : 'bg-red-900/20'}
               label="صافي التدفق النقدي"
-              value={`${stats.cashFlow.net >= 0 ? '+' : ''}$${fmt(stats.cashFlow.net)}`}
+              value={`${stats.cashFlow.net >= 0 ? '+' : ''}${fmt(stats.cashFlow.net)}`}
               sub="للشهر الحالي"
             />
           </div>
@@ -92,14 +93,14 @@ export default function DashboardPage() {
                 <Users className="w-4 h-4 text-red-400" />
                 <span className="text-sm text-slate-400">ديون العملاء</span>
               </div>
-              <p className="text-2xl font-bold text-red-400">${fmt(stats.receivables.customerDebt)}</p>
+              <p className="text-2xl font-bold text-red-400">{fmt(stats.receivables.customerDebt)}</p>
             </div>
             <div className="bg-slate-800 border border-slate-700 rounded-xl p-4">
               <div className="flex items-center gap-2 mb-3">
                 <Truck className="w-4 h-4 text-orange-400" />
                 <span className="text-sm text-slate-400">مستحقات الموردين</span>
               </div>
-              <p className="text-2xl font-bold text-orange-400">${fmt(stats.receivables.supplierBalance)}</p>
+              <p className="text-2xl font-bold text-orange-400">{fmt(stats.receivables.supplierBalance)}</p>
             </div>
           </div>
 
@@ -165,7 +166,7 @@ export default function DashboardPage() {
                         <p className="text-xs text-slate-500">{s.customer_name ?? 'زبون نقدي'}</p>
                       </div>
                       <div className="text-left">
-                        <p className="text-sm font-semibold text-white">${fmt(parseFloat(s.total_amount))}</p>
+                        <p className="text-sm font-semibold text-white">{fmt(parseFloat(s.total_amount))}</p>
                         <p className="text-xs text-slate-500">{fmtDate(s.created_at)}</p>
                       </div>
                     </div>
