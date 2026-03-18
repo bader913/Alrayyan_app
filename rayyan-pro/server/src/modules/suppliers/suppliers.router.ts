@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { dbAll, dbGet, dbRun } from '../../shared/db/pool.js';
+import { dbAll, dbGet, dbRun, withTransaction } from '../../shared/db/pool.js';
 import { requireRole, ROLES } from '../../shared/middleware/requireRole.js';
 
 const supplierSchema = z.object({
@@ -83,6 +83,86 @@ export async function suppliersRoutes(fastify: FastifyInstance) {
         'SELECT id, name, phone, address, balance, notes FROM suppliers WHERE id = $1', [id]
       );
       return { success: true, supplier: updated };
+    }
+  );
+
+  // GET /api/suppliers/:id/account — رصيد وحركات الحساب
+  fastify.get(
+    '/api/suppliers/:id/account',
+    { onRequest: [fastify.authenticate, requireRole(ROLES.STOCK_TEAM)] },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const { page = '1', limit = '30' } = request.query as Record<string, string>;
+      const offset = (Math.max(1, parseInt(page)) - 1) * parseInt(limit);
+
+      const supplier = await dbGet(
+        'SELECT id, name, phone, address, balance, notes FROM suppliers WHERE id = $1', [id]
+      );
+      if (!supplier) return reply.status(404).send({ success: false, message: 'المورد غير موجود' });
+
+      const countRow = await dbGet<{ total: string }>(
+        'SELECT COUNT(*) AS total FROM supplier_account_transactions WHERE supplier_id = $1', [id]
+      );
+      const total = parseInt(countRow?.total ?? '0');
+
+      const transactions = await dbAll(
+        `SELECT t.*, u.full_name AS created_by_name
+         FROM supplier_account_transactions t
+         LEFT JOIN users u ON u.id = t.created_by
+         WHERE t.supplier_id = $1
+         ORDER BY t.created_at DESC
+         LIMIT $2 OFFSET $3`,
+        [id, parseInt(limit), offset]
+      );
+
+      return { success: true, supplier, transactions, total, page: parseInt(page), limit: parseInt(limit) };
+    }
+  );
+
+  // POST /api/suppliers/:id/payments — تسجيل دفعة للمورد
+  const paymentSchema = z.object({
+    amount:        z.number().positive('المبلغ يجب أن يكون موجباً'),
+    currency_code: z.string().length(3).default('USD'),
+    exchange_rate: z.number().positive().default(1),
+    note:          z.string().max(500).optional(),
+  });
+
+  fastify.post(
+    '/api/suppliers/:id/payments',
+    { onRequest: [fastify.authenticate, requireRole(ROLES.ADMIN_MANAGER)] },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const data = paymentSchema.parse(request.body);
+      const userId = parseInt(request.user.id);
+
+      const result = await withTransaction(async (client) => {
+        const sup = await client.query(
+          'SELECT id, balance FROM suppliers WHERE id = $1 FOR UPDATE', [id]
+        );
+        if (!sup.rows[0]) throw Object.assign(new Error('المورد غير موجود'), { statusCode: 404 });
+
+        const currentBalance = parseFloat(sup.rows[0].balance);
+        const amountUSD = data.amount * data.exchange_rate;
+        const newBalance = Math.max(0, currentBalance - amountUSD);
+
+        await client.query(
+          'UPDATE suppliers SET balance = $1, updated_at = NOW() WHERE id = $2',
+          [newBalance, id]
+        );
+
+        await client.query(
+          `INSERT INTO supplier_account_transactions
+           (supplier_id, transaction_type, debit_amount, credit_amount, balance_after,
+            currency_code, exchange_rate, amount_original, note, created_by)
+           VALUES ($1,'payment',$2,0,$3,$4,$5,$6,$7,$8)`,
+          [id, amountUSD, newBalance, data.currency_code, data.exchange_rate, data.amount,
+           data.note ?? null, userId]
+        );
+
+        return { newBalance };
+      });
+
+      return reply.status(201).send({ success: true, message: 'تم تسجيل الدفعة', ...result });
     }
   );
 }

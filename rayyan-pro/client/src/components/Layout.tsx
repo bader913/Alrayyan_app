@@ -1,8 +1,8 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, ShoppingCart, Package,
-  Users, BarChart2, Settings, LogOut, ChevronLeft,
-  Truck, RotateCcw,
+  Users, UserCheck, BarChart2, Settings, LogOut, ChevronLeft,
+  Truck, RotateCcw, Contact,
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore.ts';
 import { authApi } from '../api/client.ts';
@@ -21,6 +21,8 @@ const NAV_ITEMS: NavItem[] = [
   { icon: Package,         label: 'المنتجات',    path: '/products',   roles: ['admin', 'manager', 'warehouse'],            ready: true },
   { icon: Truck,           label: 'المشتريات',   path: '/purchases',  roles: ['admin', 'manager', 'warehouse'],            ready: true },
   { icon: RotateCcw,       label: 'المرتجعات',   path: '/returns',    roles: ['admin', 'manager', 'cashier'],              ready: true },
+  { icon: Contact,         label: 'الموردون',    path: '/suppliers',  roles: ['admin', 'manager', 'warehouse'],            ready: true },
+  { icon: UserCheck,       label: 'العملاء',     path: '/customers',  roles: ['admin', 'manager', 'cashier'],              ready: true },
   { icon: Users,           label: 'المستخدمون',  path: '/users',      roles: ['admin', 'manager'],                         ready: true },
   { icon: BarChart2,       label: 'التقارير',    path: '/reports',    roles: ['admin', 'manager'],                         ready: false },
   { icon: Settings,        label: 'الإعدادات',   path: '/settings',   roles: ['admin'],                                    ready: false },
