@@ -6,6 +6,9 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore.ts';
 import { authApi } from '../api/client.ts';
+import { useQuery } from '@tanstack/react-query';
+import { settingsApi } from '../api/settings.ts';
+import { useEffect } from 'react';
 
 interface NavItem {
   icon: React.ElementType;
@@ -40,6 +43,25 @@ export default function Layout() {
   const { user, refreshToken, clearAuth } = useAuthStore();
   const navigate = useNavigate();
 
+  const { data: settings } = useQuery({
+    queryKey: ['settings'],
+    queryFn: () => settingsApi.getAll().then((r) => r.data.settings),
+    staleTime: 0,
+  });
+
+  useEffect(() => {
+    if (!settings) return;
+    const color = settings.theme_color || '#059669';
+    document.documentElement.style.setProperty('--primary', color);
+    if (settings.theme_mode === 'dark') {
+      document.documentElement.classList.add('dark-mode');
+    } else {
+      document.documentElement.classList.remove('dark-mode');
+    }
+  }, [settings]);
+
+  const primary = 'var(--primary)';
+
   const handleLogout = async () => {
     if (refreshToken) {
       try { await authApi.logout(refreshToken); } catch {}
@@ -64,7 +86,7 @@ export default function Layout() {
           <div className="flex items-center gap-3">
             <div
               className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-lg flex-shrink-0"
-              style={{ background: '#059669' }}
+              style={{ background: primary }}
             >
               ر
             </div>
@@ -90,7 +112,7 @@ export default function Layout() {
                   }`
                 }
                 style={({ isActive }) =>
-                  isActive ? { background: '#059669' } : {}
+                  isActive ? { background: primary } : {}
                 }
               >
                 <item.icon size={17} className="flex-shrink-0" />
@@ -116,7 +138,7 @@ export default function Layout() {
           <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-slate-50 mb-1.5">
             <div
               className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-black text-xs flex-shrink-0"
-              style={{ background: '#059669' }}
+              style={{ background: primary }}
             >
               {user?.full_name?.[0] || 'م'}
             </div>

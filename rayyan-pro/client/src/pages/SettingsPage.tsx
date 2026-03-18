@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { settingsApi } from '../api/settings.ts';
 import { Settings, Save, Check } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface SettingGroup {
   title:  string;
@@ -44,7 +45,18 @@ const GROUPS: SettingGroup[] = [
   },
 ];
 
+function applyTheme(s: Record<string, string>) {
+  const color = s.theme_color || '#059669';
+  document.documentElement.style.setProperty('--primary', color);
+  if (s.theme_mode === 'dark') {
+    document.documentElement.classList.add('dark-mode');
+  } else {
+    document.documentElement.classList.remove('dark-mode');
+  }
+}
+
 export default function SettingsPage() {
+  const qc = useQueryClient();
   const [values, setValues]     = useState<Record<string, string>>({});
   const [loading, setLoading]   = useState(true);
   const [saving, setSaving]     = useState(false);
@@ -54,6 +66,7 @@ export default function SettingsPage() {
   useEffect(() => {
     settingsApi.getAll().then(res => {
       setValues(res.data.settings);
+      applyTheme(res.data.settings);
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
@@ -63,6 +76,8 @@ export default function SettingsPage() {
     setError('');
     try {
       await settingsApi.bulkUpdate(values);
+      applyTheme(values);
+      qc.invalidateQueries({ queryKey: ['settings'] });
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (e) {

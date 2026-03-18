@@ -38,3 +38,33 @@ button {
   background: #cbd5e1;
   border-radius: 4px;
 }
+
+/* ── Dark mode (applied when theme_mode = 'dark') ─────────────────────── */
+html.dark-mode body {
+  background-color: #0f172a;
+  color: #e2e8f0;
+}
+
+html.dark-mode .bg-white,
+html.dark-mode [style*="background: '#fff'"],
+html.dark-mode [style*='background: "#fff"'] {
+  background-color: #1e293b !important;
+}
+
+html.dark-mode .text-slate-700,
+html.dark-mode .text-slate-800 {
+  color: #e2e8f0 !important;
+}
+
+html.dark-mode .border-slate-200,
+html.dark-mode [style*="borderColor: '#e2e8f0'"] {
+  border-color: #334155 !important;
+}
+
+html.dark-mode .bg-slate-50 {
+  background-color: #1e293b !important;
+}
+
+html.dark-mode .hover\:bg-slate-50:hover {
+  background-color: #334155 !important;
+}

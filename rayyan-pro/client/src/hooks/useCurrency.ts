@@ -25,7 +25,7 @@ export function useCurrency(): CurrencyContext {
   const { data: settings } = useQuery({
     queryKey: ['settings'],
     queryFn: () => settingsApi.getAll().then((r) => r.data.settings),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
   });
 
   const currency = settings?.currency ?? 'USD';

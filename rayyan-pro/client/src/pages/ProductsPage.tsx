@@ -223,25 +223,29 @@ function ProductModal({ editProduct, categories, suppliers, onClose, onSubmit, l
 
           {/* === الأسعار === */}
           <div>
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-2 mb-2">
               <ArrowUpDown size={14} style={{ color: '#059669' }} />
               <span className="text-xs font-black text-slate-500 uppercase tracking-wider">الأسعار</span>
             </div>
+            <div className="mb-3 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-700 font-semibold">
+              <span className="text-base">💡</span>
+              جميع الأسعار تُسجَّل بالدولار الأمريكي <span className="font-black">(USD $)</span> — يتم تحويلها تلقائياً للعملة المختارة في الإعدادات.
+            </div>
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className={labelCls}>سعر الشراء *</label>
+                <label className={labelCls}>سعر الشراء * <span className="text-emerald-600 font-black">($)</span></label>
                 <input required type="number" min="0" step="0.01" value={form.purchase_price} onChange={set('purchase_price')}
-                  className={inputCls} placeholder="0.00" dir="ltr" />
+                  className={inputCls} placeholder="0.00 $" dir="ltr" />
               </div>
               <div>
-                <label className={labelCls}>سعر البيع (مفرق) *</label>
+                <label className={labelCls}>سعر البيع مفرق * <span className="text-emerald-600 font-black">($)</span></label>
                 <input required type="number" min="0" step="0.01" value={form.retail_price} onChange={set('retail_price')}
-                  className={inputCls} placeholder="0.00" dir="ltr" />
+                  className={inputCls} placeholder="0.00 $" dir="ltr" />
               </div>
               <div>
-                <label className={labelCls}>سعر البيع (جملة)</label>
+                <label className={labelCls}>سعر البيع جملة <span className="text-emerald-600 font-black">($)</span></label>
                 <input type="number" min="0" step="0.01" value={form.wholesale_price} onChange={set('wholesale_price')}
-                  className={inputCls} placeholder="اختياري" dir="ltr" />
+                  className={inputCls} placeholder="اختياري $" dir="ltr" />
               </div>
               {form.wholesale_price && (
                 <div>
@@ -685,12 +689,12 @@ export default function ProductsPage() {
                     </td>
                     <td className="px-4 py-3 text-xs text-slate-500 font-medium">{p.unit}</td>
                     <td className="px-4 py-3 text-sm font-black text-slate-700 whitespace-nowrap">
-                      {fmtPrice(p.retail_price)} ل.س
+                      $ {fmtPrice(p.retail_price)}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       {p.wholesale_price ? (
                         <div>
-                          <span className="text-sm font-bold text-blue-700">{fmtPrice(p.wholesale_price)} ل.س</span>
+                          <span className="text-sm font-bold text-blue-700">$ {fmtPrice(p.wholesale_price)}</span>
                           <span className="text-[10px] text-slate-400 block">
                             من {fmtQty(p.wholesale_min_qty, p.unit)}
                           </span>
