@@ -11,6 +11,7 @@ import PurchasesPage from './pages/PurchasesPage.tsx';
 import ReturnsPage from './pages/ReturnsPage.tsx';
 import SuppliersPage from './pages/SuppliersPage.tsx';
 import CustomersPage from './pages/CustomersPage.tsx';
+import ReportsPage from './pages/ReportsPage.tsx';
 
 // ============ Guards ============
 
@@ -82,6 +83,11 @@ export default function App() {
           {/* Customers — Admin + Manager + Cashier */}
           <Route element={<RequireRole roles={['admin', 'manager', 'cashier']} />}>
             <Route path="/customers" element={<CustomersPage />} />
+          </Route>
+
+          {/* Reports — Admin + Manager */}
+          <Route element={<RequireRole roles={['admin', 'manager']} />}>
+            <Route path="/reports" element={<ReportsPage />} />
           </Route>
 
         </Route>

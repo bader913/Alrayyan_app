@@ -24,7 +24,7 @@ const NAV_ITEMS: NavItem[] = [
   { icon: Contact,         label: 'الموردون',    path: '/suppliers',  roles: ['admin', 'manager', 'warehouse'],            ready: true },
   { icon: UserCheck,       label: 'العملاء',     path: '/customers',  roles: ['admin', 'manager', 'cashier'],              ready: true },
   { icon: Users,           label: 'المستخدمون',  path: '/users',      roles: ['admin', 'manager'],                         ready: true },
-  { icon: BarChart2,       label: 'التقارير',    path: '/reports',    roles: ['admin', 'manager'],                         ready: false },
+  { icon: BarChart2,       label: 'التقارير',    path: '/reports',    roles: ['admin', 'manager'],                         ready: true },
   { icon: Settings,        label: 'الإعدادات',   path: '/settings',   roles: ['admin'],                                    ready: false },
 ];
 

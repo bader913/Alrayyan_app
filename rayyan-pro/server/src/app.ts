@@ -13,6 +13,8 @@ import { shiftsRoutes }     from './modules/shifts/shifts.router.js';
 import { salesRoutes }         from './modules/sales/sales.router.js';
 import { purchasesRoutes }     from './modules/purchases/purchases.router.js';
 import { salesReturnsRoutes }  from './modules/salesReturns/salesReturns.router.js';
+import { dashboardRoutes }     from './modules/dashboard/dashboard.router.js';
+import { reportsRoutes }       from './modules/reports/reports.router.js';
 import { dbAll } from './shared/db/pool.js';
 
 declare module 'fastify' {
@@ -97,6 +99,9 @@ export async function buildApp() {
   // Phase 4 — Purchases & Returns
   await app.register(purchasesRoutes);
   await app.register(salesReturnsRoutes);
+  // Phase 5/6 — Accounts + Dashboard + Reports
+  await app.register(dashboardRoutes);
+  await app.register(reportsRoutes);
 
   return app;
 }
