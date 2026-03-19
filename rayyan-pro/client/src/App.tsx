@@ -1,6 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { Lock, RefreshCw } from 'lucide-react';
 import { useAuthStore } from './store/authStore.ts';
+import { LicenseContext } from './context/LicenseContext.ts';
+import { licenseApi } from './api/license.ts';
 import Layout from './components/Layout.tsx';
 import LoginPage from './pages/LoginPage.tsx';
 import LicensePage from './pages/LicensePage.tsx';
@@ -16,19 +19,60 @@ import ReportsPage from './pages/ReportsPage.tsx';
 import AuditLogPage from './pages/AuditLogPage.tsx';
 import SettingsPage from './pages/SettingsPage.tsx';
 import SubscriptionPage from './pages/SubscriptionPage.tsx';
-import { licenseApi } from './api/license.ts';
-import { RefreshCw } from 'lucide-react';
 
-// ============ License Guard ============
+// ── Global toast for write-blocked actions ────────────────────────────────────
+function LicenseBlockToast() {
+  const [msg, setMsg] = useState<string | null>(null);
 
+  const show = useCallback((e: Event) => {
+    setMsg((e as CustomEvent).detail ?? 'غير مسموح في وضع القراءة فقط');
+    setTimeout(() => setMsg(null), 4000);
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('license:expired-write', show);
+    window.addEventListener('license:required',      show);
+    return () => {
+      window.removeEventListener('license:expired-write', show);
+      window.removeEventListener('license:required',      show);
+    };
+  }, [show]);
+
+  if (!msg) return null;
+  return (
+    <div
+      dir="rtl"
+      style={{
+        position: 'fixed', bottom: '1.5rem', right: '1.5rem', zIndex: 9999,
+        background: '#7f1d1d', color: '#fecaca',
+        padding: '0.75rem 1.25rem',
+        borderRadius: '0.75rem',
+        boxShadow: '0 4px 24px rgba(0,0,0,.4)',
+        display: 'flex', alignItems: 'center', gap: '0.6rem',
+        fontWeight: 700, fontSize: '0.875rem',
+        maxWidth: '420px',
+      }}
+    >
+      <Lock size={16} style={{ flexShrink: 0, color: '#fca5a5' }} />
+      {msg}
+    </div>
+  );
+}
+
+// ── License Guard ─────────────────────────────────────────────────────────────
 function LicenseGuard({ children }: { children: React.ReactNode }) {
-  const [checking, setChecking] = useState(true);
-  const [licensed, setLicensed] = useState(false);
+  const [checking,  setChecking]  = useState(true);
+  const [licensed,  setLicensed]  = useState(false);
+  const [isExpired, setIsExpired] = useState(false);
 
   useEffect(() => {
     licenseApi.getStatus()
-      .then((res) => setLicensed(res.data.active))
-      .catch(() => setLicensed(false))
+      .then((res) => {
+        const { active, expired } = res.data;
+        setLicensed(active || !!expired);   // expired → show app in read-only
+        setIsExpired(!!expired && !active);
+      })
+      .catch(() => { setLicensed(false); setIsExpired(false); })
       .finally(() => setChecking(false));
   }, []);
 
@@ -42,13 +86,19 @@ function LicenseGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // No license at all → activation page
   if (!licensed) return <LicensePage />;
 
-  return <>{children}</>;
+  // Active or expired → render app (expired shows read-only banner via context)
+  return (
+    <LicenseContext.Provider value={{ isExpired }}>
+      <LicenseBlockToast />
+      {children}
+    </LicenseContext.Provider>
+  );
 }
 
-// ============ Auth Guards ============
-
+// ── Auth Guards ───────────────────────────────────────────────────────────────
 function RequireAuth() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   if (!isAuthenticated) return <Navigate to="/login" replace />;
@@ -67,8 +117,7 @@ function RequireRole({ roles }: { roles: string[] }) {
   return <Outlet />;
 }
 
-// ============ App ============
-
+// ── App ───────────────────────────────────────────────────────────────────────
 export default function App() {
   return (
     <LicenseGuard>
@@ -85,50 +134,40 @@ export default function App() {
         <Route element={<RequireAuth />}>
           <Route element={<Layout />}>
 
-            {/* All authenticated roles */}
             <Route path="/dashboard" element={<DashboardPage />} />
 
-            {/* Admin + Manager only */}
             <Route element={<RequireRole roles={['admin', 'manager']} />}>
               <Route path="/users" element={<UsersPage />} />
             </Route>
 
-            {/* Admin + Manager + Warehouse */}
             <Route element={<RequireRole roles={['admin', 'manager', 'warehouse']} />}>
               <Route path="/products" element={<ProductsPage />} />
             </Route>
 
-            {/* POS — Admin + Manager + Cashier */}
             <Route element={<RequireRole roles={['admin', 'manager', 'cashier']} />}>
               <Route path="/pos" element={<POSPage />} />
             </Route>
 
-            {/* Purchases — Admin + Manager + Warehouse */}
             <Route element={<RequireRole roles={['admin', 'manager', 'warehouse']} />}>
               <Route path="/purchases" element={<PurchasesPage />} />
             </Route>
 
-            {/* Returns — Admin + Manager + Cashier */}
             <Route element={<RequireRole roles={['admin', 'manager', 'cashier']} />}>
               <Route path="/returns" element={<ReturnsPage />} />
             </Route>
 
-            {/* Suppliers — Admin + Manager + Warehouse */}
             <Route element={<RequireRole roles={['admin', 'manager', 'warehouse']} />}>
               <Route path="/suppliers" element={<SuppliersPage />} />
             </Route>
 
-            {/* Customers — Admin + Manager + Cashier */}
             <Route element={<RequireRole roles={['admin', 'manager', 'cashier']} />}>
               <Route path="/customers" element={<CustomersPage />} />
             </Route>
 
-            {/* Reports — Admin + Manager */}
             <Route element={<RequireRole roles={['admin', 'manager']} />}>
               <Route path="/reports" element={<ReportsPage />} />
             </Route>
 
-            {/* Audit Log — Admin + Manager */}
             <Route element={<RequireRole roles={['admin', 'manager']} />}>
               <Route path="/audit-logs" element={<AuditLogPage />} />
             </Route>
@@ -144,7 +183,6 @@ export default function App() {
           </Route>
         </Route>
 
-        {/* Fallback */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>

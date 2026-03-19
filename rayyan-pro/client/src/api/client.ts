@@ -25,6 +25,19 @@ apiClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // 402 — License issue
+    if (error.response?.status === 402) {
+      const code    = error.response.data?.code;
+      const message = error.response.data?.message ?? 'مشكلة في الترخيص';
+      if (code === 'LICENSE_EXPIRED_READONLY') {
+        // Show a visible alert then reject so callers can handle normally
+        window.dispatchEvent(new CustomEvent('license:expired-write', { detail: message }));
+      } else {
+        window.dispatchEvent(new CustomEvent('license:required', { detail: message }));
+      }
+      return Promise.reject(error);
+    }
+
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 

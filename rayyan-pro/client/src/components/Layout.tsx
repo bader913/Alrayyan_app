@@ -2,13 +2,14 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, ShoppingCart, Package,
   Users, UserCheck, BarChart2, Settings, LogOut, ChevronLeft,
-  Truck, RotateCcw, Contact, Shield, BadgeCheck,
+  Truck, RotateCcw, Contact, Shield, BadgeCheck, AlertTriangle,
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore.ts';
 import { authApi } from '../api/client.ts';
 import { useQuery } from '@tanstack/react-query';
 import { settingsApi } from '../api/settings.ts';
 import { useEffect } from 'react';
+import { useLicense } from '../context/LicenseContext.ts';
 
 interface NavItem {
   icon: React.ElementType;
@@ -43,6 +44,7 @@ const ROLE_LABELS: Record<string, string> = {
 export default function Layout() {
   const { user, refreshToken, clearAuth } = useAuthStore();
   const navigate = useNavigate();
+  const { isExpired } = useLicense();
 
   const { data: settings } = useQuery({
     queryKey: ['settings'],
@@ -183,8 +185,28 @@ export default function Layout() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 min-w-0 overflow-auto">
-        <Outlet />
+      <main className="flex-1 min-w-0 overflow-auto flex flex-col">
+        {/* Read-only banner when license expired */}
+        {isExpired && (
+          <div
+            className="flex items-center gap-3 px-5 py-2.5 text-sm font-bold flex-shrink-0"
+            style={{ background: '#7f1d1d', color: '#fecaca' }}
+          >
+            <AlertTriangle size={16} className="flex-shrink-0 text-red-300" />
+            <span className="flex-1">
+              انتهت صلاحية الترخيص — <strong className="text-white">وضع القراءة فقط</strong>، لا يمكن إضافة أو تعديل أو حذف أي بيانات
+            </span>
+            <NavLink
+              to="/subscription"
+              className="px-3 py-1 rounded-lg text-xs font-black text-white border border-red-400 hover:bg-red-800 transition-colors flex-shrink-0"
+            >
+              تجديد الاشتراك
+            </NavLink>
+          </div>
+        )}
+        <div className="flex-1 min-h-0 overflow-auto">
+          <Outlet />
+        </div>
       </main>
     </div>
   );
