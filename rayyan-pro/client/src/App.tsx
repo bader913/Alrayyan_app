@@ -15,6 +15,7 @@ import CustomersPage from './pages/CustomersPage.tsx';
 import ReportsPage from './pages/ReportsPage.tsx';
 import AuditLogPage from './pages/AuditLogPage.tsx';
 import SettingsPage from './pages/SettingsPage.tsx';
+import SubscriptionPage from './pages/SubscriptionPage.tsx';
 import { licenseApi } from './api/license.ts';
 import { RefreshCw } from 'lucide-react';
 
@@ -131,6 +132,9 @@ export default function App() {
             <Route element={<RequireRole roles={['admin', 'manager']} />}>
               <Route path="/audit-logs" element={<AuditLogPage />} />
             </Route>
+
+            {/* Subscription — All roles */}
+            <Route path="/subscription" element={<SubscriptionPage />} />
 
             {/* Settings — Admin only */}
             <Route element={<RequireRole roles={['admin']} />}>
