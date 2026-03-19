@@ -591,7 +591,7 @@ export default function POSPage() {
 
           <div className="flex gap-3">
             <button
-              onClick={() => printInvoice(lastSale)}
+              onClick={() => printInvoice(lastSale, appSettings?.store_name ?? 'ريان برو', { symbol, rate })}
               className="flex items-center gap-2 px-4 py-3 rounded-xl border border-slate-200 text-slate-700 font-bold text-sm hover:bg-slate-50"
             >
               <Printer size={16} /> طباعة

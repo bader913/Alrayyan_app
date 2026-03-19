@@ -1,6 +1,6 @@
 import type { Sale } from '../api/pos.ts';
 
-const fmt = (n: string | number) =>
+const fmtNum = (n: string | number) =>
   parseFloat(String(n)).toLocaleString('en-US', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
@@ -13,28 +13,43 @@ const PAYMENT_LABELS: Record<string, string> = {
   mixed:  'مختلط',
 };
 
-export function printInvoice(sale: Sale, storeName = 'ريان برو') {
-  const due = parseFloat(sale.total_amount) - parseFloat(sale.paid_amount);
-  const change = parseFloat(sale.paid_amount) - parseFloat(sale.total_amount);
+export interface PrintCurrency {
+  symbol: string;
+  rate:   number;
+}
+
+export function printInvoice(
+  sale: Sale,
+  storeName = 'ريان برو',
+  currency: PrintCurrency = { symbol: 'ل.س', rate: 1 },
+) {
+  const { symbol, rate } = currency;
+
+  // Convert a USD amount to display currency and format it
+  const fmtC = (usd: string | number): string =>
+    `${fmtNum(parseFloat(String(usd)) * rate)} ${symbol}`;
+
+  const due    = parseFloat(sale.total_amount) - parseFloat(sale.paid_amount);
+  const change = parseFloat(sale.paid_amount)  - parseFloat(sale.total_amount);
 
   const itemRows = sale.items
     .map((item) => {
-      const qty = parseFloat(item.quantity);
+      const qty  = parseFloat(item.quantity);
       const unit = item.is_weighted ? `${qty.toFixed(3)} كغ` : `${qty} ${item.unit}`;
       const disc = parseFloat(item.discount) > 0
-        ? `<span style="color:#ef4444;font-size:11px;"> (-${fmt(item.discount)})</span>`
+        ? `<span style="color:#ef4444;font-size:11px;"> (-${fmtC(item.discount)})</span>`
         : '';
       return `
         <tr>
           <td style="padding:6px 4px;border-bottom:1px dotted #e2e8f0;font-size:13px;">
             ${item.product_name}
             ${item.price_type === 'wholesale' ? '<span style="font-size:10px;color:#0891b2;"> (جملة)</span>' : ''}
-            ${item.price_type === 'custom' ? '<span style="font-size:10px;color:#7c3aed;"> (مخصص)</span>' : ''}
+            ${item.price_type === 'custom'    ? '<span style="font-size:10px;color:#7c3aed;"> (مخصص)</span>' : ''}
           </td>
           <td style="padding:6px 4px;border-bottom:1px dotted #e2e8f0;text-align:center;font-size:12px;">${unit}</td>
-          <td style="padding:6px 4px;border-bottom:1px dotted #e2e8f0;text-align:center;font-size:12px;">${fmt(item.unit_price)}</td>
+          <td style="padding:6px 4px;border-bottom:1px dotted #e2e8f0;text-align:center;font-size:12px;">${fmtC(item.unit_price)}</td>
           <td style="padding:6px 4px;border-bottom:1px dotted #e2e8f0;text-align:left;font-size:13px;font-weight:700;">
-            ${fmt(item.total_price)}${disc}
+            ${fmtC(item.total_price)}${disc}
           </td>
         </tr>`;
     })
@@ -114,16 +129,16 @@ export function printInvoice(sale: Sale, storeName = 'ريان برو') {
   <table class="totals">
     <tr>
       <td>المجموع الفرعي</td>
-      <td style="text-align:left;">${fmt(sale.subtotal)} ل.س</td>
+      <td style="text-align:left;">${fmtC(sale.subtotal)}</td>
     </tr>
     ${parseFloat(sale.discount) > 0 ? `
     <tr>
       <td style="color:#ef4444;">الخصم</td>
-      <td style="text-align:left;color:#ef4444;">- ${fmt(sale.discount)} ل.س</td>
+      <td style="text-align:left;color:#ef4444;">- ${fmtC(sale.discount)}</td>
     </tr>` : ''}
     <tr>
       <td class="big">الإجمالي</td>
-      <td class="big" style="text-align:left;">${fmt(sale.total_amount)} ل.س</td>
+      <td class="big" style="text-align:left;">${fmtC(sale.total_amount)}</td>
     </tr>
     <tr>
       <td style="color:#64748b;">طريقة الدفع</td>
@@ -132,17 +147,17 @@ export function printInvoice(sale: Sale, storeName = 'ريان برو') {
     ${parseFloat(sale.paid_amount) > 0 ? `
     <tr>
       <td>المدفوع</td>
-      <td style="text-align:left;">${fmt(sale.paid_amount)} ل.س</td>
+      <td style="text-align:left;">${fmtC(sale.paid_amount)}</td>
     </tr>` : ''}
     ${change > 0 ? `
     <tr>
       <td style="color:#059669;">الباقي للعميل</td>
-      <td style="text-align:left;color:#059669;font-weight:700;">${fmt(change)} ل.س</td>
+      <td style="text-align:left;color:#059669;font-weight:700;">${fmtC(change)}</td>
     </tr>` : ''}
     ${due > 0.001 ? `
     <tr>
       <td style="color:#ef4444;">المتبقي (آجل)</td>
-      <td style="text-align:left;color:#ef4444;font-weight:700;">${fmt(due)} ل.س</td>
+      <td style="text-align:left;color:#ef4444;font-weight:700;">${fmtC(due)}</td>
     </tr>` : ''}
   </table>
 
