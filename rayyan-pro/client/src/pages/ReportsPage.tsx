@@ -309,10 +309,12 @@ export default function ReportsPage() {
           {profitData && (
             <>
               <SummaryRow cards={[
-                { label: 'إجمالي الإيرادات', value: fmt(profitData.summary.totalRevenue), color: '#10b981' },
-                { label: 'إجمالي التكلفة',   value: fmt(profitData.summary.totalCost),    color: '#ef4444' },
-                { label: 'إجمالي الربح',      value: fmt(profitData.summary.grossProfit),  color: profitData.summary.grossProfit >= 0 ? '#10b981' : '#ef4444' },
-                { label: 'هامش الربح',        value: `${profitData.summary.margin}%`,      color: '#0ea5e9' },
+                { label: 'إجمالي الإيرادات', value: fmt(profitData.summary.totalRevenue),  color: '#10b981' },
+                { label: 'إجمالي التكلفة',   value: fmt(profitData.summary.totalCost),     color: '#ef4444' },
+                { label: 'ربح المبيعات',      value: fmt(profitData.summary.grossProfit),   color: profitData.summary.grossProfit >= 0 ? '#10b981' : '#ef4444' },
+                { label: 'إجمالي المصاريف',   value: fmt(profitData.summary.totalExpenses ?? 0), color: '#f59e0b' },
+                { label: 'صافي الربح',        value: fmt(profitData.summary.netProfit ?? profitData.summary.grossProfit), color: (profitData.summary.netProfit ?? profitData.summary.grossProfit) >= 0 ? '#10b981' : '#ef4444' },
+                { label: 'هامش الربح الصافي', value: `${profitData.summary.margin}%`,       color: '#0ea5e9' },
               ]} />
               <TableToolbar
                 title={`${profitData.data.length} منتج`}

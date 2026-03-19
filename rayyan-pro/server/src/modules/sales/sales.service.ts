@@ -196,8 +196,9 @@ export class SalesService {
         });
       }
 
-      // 8. حساب العميل (إذا كان هناك مبلغ مؤجل)
+      // 8. حساب العميل
       if (input.customer_id && due_amount > 0) {
+        // دين: المبلغ المدفوع أقل من الإجمالي
         const custUpdate = await client.query<{ balance: string }>(
           'UPDATE customers SET balance = balance + $1, updated_at = NOW() WHERE id = $2 RETURNING balance',
           [due_amount, input.customer_id]
@@ -206,12 +207,32 @@ export class SalesService {
         await client.query(
           `INSERT INTO customer_account_transactions
              (customer_id, transaction_type, reference_id, reference_type,
-              debit_amount, balance_after, note, created_by)
-           VALUES ($1, 'sale', $2, 'sale', $3, $4, $5, $6)`,
+              debit_amount, credit_amount, balance_after, note, created_by)
+           VALUES ($1, 'sale', $2, 'sale', $3, 0, $4, $5, $6)`,
           [
             input.customer_id, saleId, due_amount,
             custUpdate.rows[0].balance,
             `بيع فاتورة ${invoiceNumber}`,
+            userId,
+          ]
+        );
+      } else if (input.customer_id && due_amount < 0) {
+        // دفعة زائدة: يُضاف الفرق كرصيد دائن للعميل
+        const overpaid = -due_amount;
+        const custUpdate = await client.query<{ balance: string }>(
+          'UPDATE customers SET balance = balance - $1, updated_at = NOW() WHERE id = $2 RETURNING balance',
+          [overpaid, input.customer_id]
+        );
+
+        await client.query(
+          `INSERT INTO customer_account_transactions
+             (customer_id, transaction_type, reference_id, reference_type,
+              debit_amount, credit_amount, balance_after, note, created_by)
+           VALUES ($1, 'payment', $2, 'sale', 0, $3, $4, $5, $6)`,
+          [
+            input.customer_id, saleId, overpaid,
+            custUpdate.rows[0].balance,
+            `دفعة زائدة - فاتورة ${invoiceNumber}`,
             userId,
           ]
         );

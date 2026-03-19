@@ -199,30 +199,46 @@ export async function reportsRoutes(fastify: FastifyInstance) {
       const from = q.from || new Date(new Date().setDate(1)).toISOString().split('T')[0];
       const to   = q.to   || new Date().toISOString().split('T')[0];
 
-      const rows = await dbAll(`
-        SELECT
-          p.id, p.name AS product_name, p.barcode AS sku,
-          SUM(si.quantity)                        AS total_sold,
-          SUM(si.total_price)                     AS total_revenue,
-          SUM(si.quantity * p.purchase_price)       AS total_cost,
-          SUM(si.total_price) - SUM(si.quantity * p.purchase_price) AS gross_profit
-        FROM sale_items si
-        JOIN products p ON p.id = si.product_id
-        JOIN sales s ON s.id = si.sale_id
-        WHERE s.created_at::date BETWEEN $1 AND $2
-        GROUP BY p.id, p.name, p.barcode
-        ORDER BY gross_profit DESC
-      `, [from, to]);
+      const [rows, expensesRow] = await Promise.all([
+        dbAll(`
+          SELECT
+            p.id, p.name AS product_name, p.barcode AS sku,
+            SUM(si.quantity)                              AS total_sold,
+            SUM(si.total_price)                           AS total_revenue,
+            SUM(si.quantity * p.purchase_price)           AS total_cost,
+            SUM(si.total_price) - SUM(si.quantity * p.purchase_price) AS gross_profit
+          FROM sale_items si
+          JOIN products p ON p.id = si.product_id
+          JOIN sales s ON s.id = si.sale_id
+          WHERE s.created_at::date BETWEEN $1 AND $2
+          GROUP BY p.id, p.name, p.barcode
+          ORDER BY gross_profit DESC
+        `, [from, to]),
+        dbGet<{ total: string }>(`
+          SELECT COALESCE(SUM(amount_usd), 0) AS total
+          FROM expenses
+          WHERE expense_date BETWEEN $1 AND $2
+        `, [from, to]),
+      ]);
 
       const totalRevenue  = rows.reduce((s, r) => s + parseFloat(String((r as { total_revenue: string }).total_revenue ?? '0')), 0);
       const totalCost     = rows.reduce((s, r) => s + parseFloat(String((r as { total_cost: string }).total_cost ?? '0')), 0);
       const grossProfit   = totalRevenue - totalCost;
-      const margin        = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
+      const totalExpenses = parseFloat(expensesRow?.total ?? '0');
+      const netProfit     = grossProfit - totalExpenses;
+      const margin        = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
 
       return {
         success: true,
         data: rows,
-        summary: { totalRevenue, totalCost, grossProfit, margin: parseFloat(margin.toFixed(2)) },
+        summary: {
+          totalRevenue,
+          totalCost,
+          grossProfit,
+          totalExpenses,
+          netProfit,
+          margin: parseFloat(margin.toFixed(2)),
+        },
         from, to,
       };
     }

@@ -18,6 +18,8 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
         lowStock,
         recentSales,
         cashFlowMonth,
+        expensesMonth,
+        grossProfitMonth,
       ] = await Promise.all([
         // مبيعات اليوم
         dbGet<{ count: string; total: string }>(`
@@ -85,6 +87,20 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
             COALESCE((SELECT SUM(paid_amount) FROM purchases
               WHERE DATE_TRUNC('month', created_at) = DATE_TRUNC('month', NOW())), 0) AS purchases_total
         `),
+        // المصاريف الشهرية
+        dbGet<{ total: string }>(`
+          SELECT COALESCE(SUM(amount_usd), 0) AS total
+          FROM expenses
+          WHERE DATE_TRUNC('month', expense_date::date) = DATE_TRUNC('month', NOW())
+        `),
+        // صافي الربح الشهري (مبيعات - تكلفة البضاعة - مشتريات - مصاريف)
+        dbGet<{ gross_profit: string }>(`
+          SELECT COALESCE(SUM(si.total_price) - SUM(si.quantity * p.purchase_price), 0) AS gross_profit
+          FROM sale_items si
+          JOIN products p ON p.id = si.product_id
+          JOIN sales s ON s.id = si.sale_id
+          WHERE DATE_TRUNC('month', s.created_at) = DATE_TRUNC('month', NOW())
+        `),
       ]);
 
       return {
@@ -106,6 +122,11 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
             salesCash:     parseFloat(cashFlowMonth?.sales_total     ?? '0'),
             purchasesCash: parseFloat(cashFlowMonth?.purchases_total ?? '0'),
             net:           parseFloat(cashFlowMonth?.sales_total ?? '0') - parseFloat(cashFlowMonth?.purchases_total ?? '0'),
+          },
+          profit: {
+            grossProfit:    parseFloat(grossProfitMonth?.gross_profit ?? '0'),
+            totalExpenses:  parseFloat(expensesMonth?.total           ?? '0'),
+            netProfit:      parseFloat(grossProfitMonth?.gross_profit ?? '0') - parseFloat(expensesMonth?.total ?? '0'),
           },
           topProducts:  topProducts  ?? [],
           lowStock:     lowStock     ?? [],

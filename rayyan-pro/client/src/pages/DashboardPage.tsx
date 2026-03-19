@@ -98,6 +98,16 @@ export default function DashboardPage() {
               value={`${stats.cashFlow.net >= 0 ? '+' : ''}${fmt(stats.cashFlow.net)}`}
               sub="للشهر الحالي"
               valueColor={stats.cashFlow.net >= 0 ? '#10b981' : '#ef4444'} />
+            {stats.profit && (
+              <KpiCard
+                icon={<TrendingUp className="w-5 h-5" />}
+                iconBg={(stats.profit.netProfit ?? 0) >= 0 ? '#d1fae5' : '#fee2e2'}
+                iconColor={(stats.profit.netProfit ?? 0) >= 0 ? '#065f46' : '#991b1b'}
+                label="صافي الربح"
+                value={`${(stats.profit.netProfit ?? 0) >= 0 ? '+' : ''}${fmt(stats.profit.netProfit ?? 0)}`}
+                sub={`مصاريف: ${fmt(stats.profit.totalExpenses ?? 0)}`}
+                valueColor={(stats.profit.netProfit ?? 0) >= 0 ? '#10b981' : '#ef4444'} />
+            )}
           </div>
 
           {/* KPI Row 2 — Debts */}
