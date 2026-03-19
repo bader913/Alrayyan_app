@@ -193,6 +193,11 @@ html:not(.dark-mode) p.text-white,
 html:not(.dark-mode) td.text-white,
 html:not(.dark-mode) th.text-white { color: var(--text-heading) !important; }
 
+/* Fix input/select/textarea text color in light mode */
+html:not(.dark-mode) input.text-white,
+html:not(.dark-mode) select.text-white,
+html:not(.dark-mode) textarea.text-white { color: var(--text-primary) !important; }
+
 /* Hover states */
 html:not(.dark-mode) .hover\:bg-slate-700:hover { background-color: var(--bg-muted) !important; }
 html:not(.dark-mode) .hover\:bg-slate-600:hover { background-color: var(--bg-muted) !important; }
