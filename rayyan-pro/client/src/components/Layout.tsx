@@ -8,8 +8,12 @@ import { useAuthStore } from '../store/authStore.ts';
 import { authApi } from '../api/client.ts';
 import { useQuery } from '@tanstack/react-query';
 import { settingsApi } from '../api/settings.ts';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useLicense } from '../context/LicenseContext.ts';
+
+const ZOOM_STEP = 5;
+const ZOOM_MIN  = 70;
+const ZOOM_MAX  = 130;
 
 interface NavItem {
   icon: React.ElementType;
@@ -62,6 +66,19 @@ export default function Layout() {
       document.documentElement.classList.remove('dark-mode');
     }
   }, [settings]);
+
+  /* ── Zoom ── */
+  const [zoom, setZoom] = useState<number>(() => {
+    const saved = localStorage.getItem('ui-zoom');
+    return saved ? parseInt(saved, 10) : 100;
+  });
+  useEffect(() => {
+    document.documentElement.style.zoom = `${zoom}%`;
+    localStorage.setItem('ui-zoom', String(zoom));
+  }, [zoom]);
+  const zoomIn    = () => setZoom(z => Math.min(z + ZOOM_STEP, ZOOM_MAX));
+  const zoomOut   = () => setZoom(z => Math.max(z - ZOOM_STEP, ZOOM_MIN));
+  const zoomReset = () => setZoom(100);
 
   const primary = 'var(--primary)';
 
@@ -174,6 +191,41 @@ export default function Layout() {
             </div>
             <ChevronLeft size={14} style={{ color: 'var(--text-muted)' }} className="flex-shrink-0" />
           </div>
+          {/* Zoom Controls */}
+          <div
+            className="flex items-center justify-between rounded-xl px-3 py-2 mb-1"
+            style={{ background: 'var(--bg-muted)' }}
+          >
+            <button
+              onClick={zoomOut}
+              disabled={zoom <= ZOOM_MIN}
+              title="تصغير"
+              className="w-7 h-7 flex items-center justify-center rounded-lg text-base font-black transition-colors disabled:opacity-30"
+              style={{ color: 'var(--text-secondary)' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-card)')}
+              onMouseLeave={e => (e.currentTarget.style.background = '')}
+            >−</button>
+
+            <button
+              onClick={zoomReset}
+              title="إعادة تعيين الحجم"
+              className="text-xs font-black tabular-nums transition-colors px-1"
+              style={{ color: zoom === 100 ? 'var(--text-muted)' : 'var(--primary)' }}
+            >
+              {zoom}%
+            </button>
+
+            <button
+              onClick={zoomIn}
+              disabled={zoom >= ZOOM_MAX}
+              title="تكبير"
+              className="w-7 h-7 flex items-center justify-center rounded-lg text-base font-black transition-colors disabled:opacity-30"
+              style={{ color: 'var(--text-secondary)' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-card)')}
+              onMouseLeave={e => (e.currentTarget.style.background = '')}
+            >+</button>
+          </div>
+
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-bold text-rose-500 hover:bg-rose-50 transition-colors"
