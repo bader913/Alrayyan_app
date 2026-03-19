@@ -1,70 +1,161 @@
 @import "tailwindcss";
 
+/* ── Google Fonts fallback (Tajawal) ──────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap');
+
+/* ── CSS Custom Properties (Light Mode) ─────────────────────────────────── */
 :root {
   --primary: #059669;
   --primary-soft: #d1fae5;
   --radius: 1rem;
   direction: rtl;
+
+  /* Layout colors */
+  --bg-page:        #f1f5f9;
+  --bg-sidebar:     #ffffff;
+  --bg-card:        #ffffff;
+  --bg-subtle:      #f8fafc;
+  --bg-muted:       #f1f5f9;
+  --bg-input:       #ffffff;
+
+  /* Text colors */
+  --text-heading:   #0f172a;
+  --text-body:      #334155;
+  --text-secondary: #64748b;
+  --text-muted:     #94a3b8;
+
+  /* Borders */
+  --border:         #e2e8f0;
+  --border-subtle:  #f1f5f9;
+  --border-strong:  #cbd5e1;
+
+  /* Shadows */
+  --shadow-sidebar: 2px 0 12px rgba(0,0,0,0.06);
+  --shadow-card:    0 1px 4px rgba(0,0,0,0.06);
 }
 
-* {
+/* ── Dark Mode Overrides ─────────────────────────────────────────────────── */
+html.dark-mode {
+  --bg-page:        #0b1120;
+  --bg-sidebar:     #111827;
+  --bg-card:        #1a2332;
+  --bg-subtle:      #111827;
+  --bg-muted:       #0b1120;
+  --bg-input:       #0f172a;
+
+  --text-heading:   #f1f5f9;
+  --text-body:      #cbd5e1;
+  --text-secondary: #94a3b8;
+  --text-muted:     #64748b;
+
+  --border:         #1e3a5f;
+  --border-subtle:  #0f172a;
+  --border-strong:  #2a4a6b;
+
+  --shadow-sidebar: 2px 0 16px rgba(0,0,0,0.4);
+  --shadow-card:    0 1px 6px rgba(0,0,0,0.3);
+}
+
+/* ── Base ──────────────────────────────────────────────────────────────────── */
+*, *::before, *::after {
   box-sizing: border-box;
 }
 
-html,
-body {
+html, body {
   margin: 0;
   padding: 0;
-  font-family: 'Segoe UI', 'Arial', sans-serif;
+  font-family: 'Tajawal', 'Segoe UI', 'Noto Sans Arabic', 'Arial', sans-serif;
   direction: rtl;
-  background-color: #f8fafc;
-  color: #1e293b;
+  background-color: var(--bg-page);
+  color: var(--text-body);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
 }
 
-input,
-select,
-textarea,
-button {
+input, select, textarea, button {
   font-family: inherit;
 }
 
-.custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
+/* ── Scrollbar ─────────────────────────────────────────────────────────────── */
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DARK MODE — Tailwind class overrides
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Backgrounds ── */
+html.dark-mode body { background-color: var(--bg-page); color: var(--text-body); }
+
+html.dark-mode .bg-white  { background-color: var(--bg-card)   !important; }
+html.dark-mode .bg-slate-50  { background-color: var(--bg-subtle) !important; }
+html.dark-mode .bg-slate-100 { background-color: #1e293b !important; }
+html.dark-mode .bg-slate-200 { background-color: #1e293b !important; }
+html.dark-mode .bg-gray-50   { background-color: var(--bg-subtle) !important; }
+html.dark-mode .bg-gray-100  { background-color: #1e293b !important; }
+
+/* ── Text ── */
+html.dark-mode .text-slate-900 { color: #f1f5f9 !important; }
+html.dark-mode .text-slate-800 { color: #e2e8f0 !important; }
+html.dark-mode .text-slate-700 { color: #cbd5e1 !important; }
+html.dark-mode .text-slate-600 { color: #94a3b8 !important; }
+html.dark-mode .text-slate-500 { color: #64748b !important; }
+html.dark-mode .text-slate-400 { color: #64748b !important; }
+html.dark-mode .text-gray-900  { color: #f1f5f9 !important; }
+html.dark-mode .text-gray-800  { color: #e2e8f0 !important; }
+html.dark-mode .text-gray-700  { color: #cbd5e1 !important; }
+html.dark-mode .text-gray-600  { color: #94a3b8 !important; }
+html.dark-mode .text-gray-500  { color: #64748b !important; }
+
+/* ── Borders ── */
+html.dark-mode .border-slate-100 { border-color: var(--border) !important; }
+html.dark-mode .border-slate-200 { border-color: var(--border) !important; }
+html.dark-mode .border-slate-300 { border-color: var(--border-strong) !important; }
+html.dark-mode .border-gray-200  { border-color: var(--border) !important; }
+
+/* ── Hover states ── */
+html.dark-mode .hover\:bg-slate-50:hover  { background-color: #1e293b !important; }
+html.dark-mode .hover\:bg-slate-100:hover { background-color: #1e293b !important; }
+html.dark-mode .hover\:bg-gray-50:hover   { background-color: #1e293b !important; }
+html.dark-mode .hover\:bg-white:hover     { background-color: var(--bg-card) !important; }
+
+/* ── Inputs ── */
+html.dark-mode input:not([type="color"]):not([type="checkbox"]):not([type="radio"]),
+html.dark-mode textarea,
+html.dark-mode select {
+  background-color: var(--bg-input) !important;
+  border-color: var(--border) !important;
+  color: var(--text-heading) !important;
 }
 
-/* ── Dark mode (applied when theme_mode = 'dark') ─────────────────────── */
-html.dark-mode body {
-  background-color: #0f172a;
-  color: #e2e8f0;
+html.dark-mode input::placeholder,
+html.dark-mode textarea::placeholder {
+  color: var(--text-muted) !important;
 }
 
-html.dark-mode .bg-white,
-html.dark-mode [style*="background: '#fff'"],
-html.dark-mode [style*='background: "#fff"'] {
-  background-color: #1e293b !important;
-}
+/* ── Dividers ── */
+html.dark-mode hr { border-color: var(--border) !important; }
 
-html.dark-mode .text-slate-700,
-html.dark-mode .text-slate-800 {
-  color: #e2e8f0 !important;
-}
+/* ── Table rows ── */
+html.dark-mode .divide-slate-100 > * + * { border-color: var(--border) !important; }
+html.dark-mode .divide-slate-200 > * + * { border-color: var(--border) !important; }
 
-html.dark-mode .border-slate-200,
-html.dark-mode [style*="borderColor: '#e2e8f0'"] {
-  border-color: #334155 !important;
-}
+/* ── Amber/yellow highlights (low stock, warnings) → dark variant ── */
+html.dark-mode .bg-amber-50  { background-color: #1c1a0a !important; }
+html.dark-mode .bg-yellow-50 { background-color: #1a1800 !important; }
+html.dark-mode .bg-green-50  { background-color: #0a1f11 !important; }
+html.dark-mode .bg-red-50    { background-color: #1f0a0a !important; }
+html.dark-mode .bg-blue-50   { background-color: #0a0f1f !important; }
+html.dark-mode .border-amber-200  { border-color: #78350f !important; }
+html.dark-mode .border-green-200  { border-color: #14532d !important; }
+html.dark-mode .border-red-200    { border-color: #7f1d1d !important; }
 
-html.dark-mode .bg-slate-50 {
-  background-color: #1e293b !important;
-}
+/* ── Ring/Focus ── */
+html.dark-mode .ring-slate-100 { --tw-ring-color: var(--border) !important; }
 
-html.dark-mode .hover\:bg-slate-50:hover {
-  background-color: #334155 !important;
-}
+/* ── Shadow ── */
+html.dark-mode .shadow,
+html.dark-mode .shadow-sm,
+html.dark-mode .shadow-md { box-shadow: 0 2px 12px rgba(0,0,0,0.4) !important; }

@@ -252,6 +252,10 @@ export default function SettingsPage() {
     }).catch(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    if (!loading) applyTheme(values);
+  }, [values.theme_color, values.theme_mode]);
+
   const handleSave = async () => {
     setSaving(true); setError('');
     try {
@@ -358,11 +362,11 @@ export default function SettingsPage() {
                     </select>
                   )}
                   {item.type === 'boolean' && (
-                    <label className="flex items-center gap-2 cursor-pointer">
+                    <label className="flex items-center gap-2 cursor-pointer" dir="ltr">
                       <div
                         onClick={() => setValues(v => ({ ...v, [item.key]: v[item.key] === 'true' ? 'false' : 'true' }))}
-                        className={`w-10 h-5 rounded-full transition-colors flex items-center ${values[item.key] === 'true' ? 'bg-sky-600' : 'bg-slate-600'}`}>
-                        <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform mx-0.5 ${values[item.key] === 'true' ? 'translate-x-5' : ''}`} />
+                        className={`w-11 h-6 rounded-full transition-colors flex items-center flex-shrink-0 ${values[item.key] === 'true' ? 'bg-sky-500' : 'bg-slate-600'}`}>
+                        <div className={`w-5 h-5 bg-white rounded-full shadow-md transition-transform mx-0.5 ${values[item.key] === 'true' ? 'translate-x-5' : 'translate-x-0'}`} />
                       </div>
                       <span className="text-sm text-slate-400">{values[item.key] === 'true' ? 'مفعّل' : 'معطّل'}</span>
                     </label>
