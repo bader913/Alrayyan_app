@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Plus, Search, RotateCcw, Package, ChevronRight, ChevronLeft,
-  X, Check, AlertTriangle, Eye,
+  X, Check, AlertTriangle, Eye, FileText,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { returnsApi, type SaleReturn, type SaleForReturn } from '../api/returns.ts';
+import { apiClient } from '../api/client.ts';
 import { useAuthStore } from '../store/authStore.ts';
 import { useCurrency } from '../hooks/useCurrency.ts';
 import axios from 'axios';
@@ -111,26 +112,44 @@ interface ReturnItemRow {
 function CreateReturnModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
   const { fmt } = useCurrency();
   const qc = useQueryClient();
-  const [saleIdInput, setSaleIdInput] = useState('');
-  const [sale, setSale]               = useState<SaleForReturn | null>(null);
-  const [loadError, setLoadError]     = useState('');
-  const [returnItems, setReturnItems] = useState<ReturnItemRow[]>([]);
+  const [searchQ, setSearchQ]           = useState('');
+  const [searchOpen, setSearchOpen]     = useState(false);
+  const [sale, setSale]                 = useState<SaleForReturn | null>(null);
+  const [loadError, setLoadError]       = useState('');
+  const [returnItems, setReturnItems]   = useState<ReturnItemRow[]>([]);
   const [returnMethod, setReturnMethod] = useState<'cash_refund' | 'debt_discount' | 'stock_only'>('cash_refund');
-  const [reason, setReason]           = useState('');
-  const [notes, setNotes]             = useState('');
-  const [error, setError]             = useState('');
+  const [reason, setReason]             = useState('');
+  const [notes, setNotes]               = useState('');
+  const [error, setError]               = useState('');
+  const searchRef                       = useRef<HTMLDivElement>(null);
 
-  const loadSale = async () => {
-    // Accept: "INV-2026-000005", "INV-2026-005", "000005", "5"
-    const trimmed = saleIdInput.trim();
-    const parts   = trimmed.split('-');
-    const lastPart = parts[parts.length - 1];
-    const id = parseInt(lastPart, 10);
-    if (!id) return;
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setSearchOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const { data: searchData } = useQuery({
+    queryKey: ['invoice-search', searchQ],
+    queryFn: async () => {
+      const res = await apiClient.get('/sales/search', { params: { q: searchQ || undefined, limit: 10 } });
+      return res.data.sales as Array<{ id: number; invoice_number: string; customer_name: string | null; total_amount: string; created_at: string }>;
+    },
+    enabled: searchOpen,
+    staleTime: 15_000,
+  });
+
+  const loadSaleById = async (id: number) => {
+    setSearchOpen(false);
     setLoadError('');
     try {
       const res = await returnsApi.getSaleForReturn(id);
       const s = res.data.sale;
+      setSearchQ(s.invoice_number);
       setSale(s);
       setReturnItems(
         s.items.map((item) => ({
@@ -179,28 +198,49 @@ function CreateReturnModal({ onClose, onDone }: { onClose: () => void; onDone: (
 
         <div className="flex-1 overflow-y-auto p-6 space-y-5">
           {/* Sale Search */}
-          <div>
-            <label className="block text-xs font-bold text-slate-600 mb-1.5">رقم فاتورة البيع</label>
-            <div className="flex gap-2">
+          <div ref={searchRef} className="relative">
+            <label className="block text-xs font-bold text-slate-600 mb-1.5">بحث بفاتورة البيع</label>
+            <div className="flex items-center gap-2 rounded-xl border px-3 py-2.5 focus-within:border-emerald-500 transition-colors" style={{ borderColor: '#e2e8f0' }}>
+              <Search size={14} className="text-slate-400 flex-shrink-0" />
               <input
                 type="text"
-                value={saleIdInput}
-                onChange={(e) => setSaleIdInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && loadSale()}
-                className="flex-1 rounded-xl border px-3 py-2.5 text-sm outline-none focus:border-emerald-500"
-                style={{ borderColor: '#e2e8f0', direction: 'ltr' }}
-                placeholder="INV-2026-001 أو رقم الفاتورة..."
-                dir="ltr"
+                value={searchQ}
+                onChange={(e) => { setSearchQ(e.target.value); setSearchOpen(true); }}
+                onFocus={() => setSearchOpen(true)}
+                className="flex-1 bg-transparent text-sm outline-none"
+                placeholder="ابحث برقم الفاتورة أو اسم العميل..."
+                dir="rtl"
+                autoComplete="off"
               />
-              <button
-                onClick={loadSale}
-                className="px-4 py-2.5 rounded-xl text-sm font-bold text-white flex items-center gap-2"
-                style={{ background: '#059669' }}
-              >
-                <Search size={14} />
-                بحث
-              </button>
+              {searchQ && (
+                <button onClick={() => { setSearchQ(''); setSale(null); setReturnItems([]); }} className="text-slate-400 hover:text-slate-600">
+                  <X size={14} />
+                </button>
+              )}
             </div>
+            {searchOpen && (
+              <div className="absolute z-50 w-full mt-1 rounded-xl border shadow-lg overflow-hidden" style={{ background: '#fff', borderColor: '#e2e8f0' }}>
+                {(searchData ?? []).length === 0 ? (
+                  <div className="px-4 py-3 text-sm text-slate-400 text-center">لا توجد نتائج</div>
+                ) : (
+                  (searchData ?? []).map((s) => (
+                    <button
+                      key={s.id}
+                      onMouseDown={() => loadSaleById(s.id)}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-right hover:bg-slate-50 border-b last:border-b-0 transition-colors"
+                      style={{ borderColor: '#f1f5f9' }}
+                    >
+                      <FileText size={14} className="text-emerald-500 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold text-slate-700 text-xs">{s.invoice_number}</div>
+                        {s.customer_name && <div className="text-slate-400 text-xs truncate">{s.customer_name}</div>}
+                      </div>
+                      <div className="text-xs font-black text-emerald-700 flex-shrink-0">${parseFloat(String(s.total_amount)).toFixed(2)}</div>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
             {loadError && <div className="mt-1.5 text-xs text-rose-600">{loadError}</div>}
           </div>
 

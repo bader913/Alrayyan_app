@@ -262,6 +262,7 @@ export class SalesService {
     customer_id?: number;
     date_from?: string;
     date_to?: string;
+    q?: string;
     page?: number;
     limit?: number;
   }) {
@@ -277,6 +278,11 @@ export class SalesService {
       conditions.push(`s.customer_id = $${idx++}`);
       values.push(filters.customer_id);
     }
+    if (filters.q && filters.q.trim()) {
+      conditions.push(`(s.invoice_number ILIKE $${idx} OR c.name ILIKE $${idx})`);
+      values.push(`%${filters.q.trim()}%`);
+      idx++;
+    }
     if (filters.date_from) {
       conditions.push(`s.created_at >= $${idx++}`);
       values.push(filters.date_from);
@@ -291,7 +297,7 @@ export class SalesService {
     const offset = ((filters.page ?? 1) - 1) * limit;
 
     const count = await pool.query<{ count: string }>(
-      `SELECT COUNT(*)::bigint FROM sales s ${where}`, values
+      `SELECT COUNT(*)::bigint FROM sales s LEFT JOIN customers c ON c.id = s.customer_id ${where}`, values
     );
     const total = parseInt(count.rows[0].count, 10);
 

@@ -23,41 +23,58 @@ interface ProductRow {
 }
 
 function ProductSearch({ onSelect }: { onSelect: (p: ProductRow) => void }) {
-  const [q, setQ] = useState('');
+  const [q, setQ]               = useState('');
   const [debouncedQ, setDebouncedQ] = useState('');
+  const [focused, setFocused]   = useState(false);
+  const containerRef            = React.useRef<HTMLDivElement>(null);
+
   React.useEffect(() => {
     const t = setTimeout(() => setDebouncedQ(q), 300);
     return () => clearTimeout(t);
   }, [q]);
+
+  React.useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setFocused(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const open = focused;
+
   const { data, isFetching } = useQuery({
     queryKey: ['products-search', debouncedQ],
     queryFn: async () => {
-      if (debouncedQ.trim().length < 1) return [];
-      const res = await apiClient.get<{ products: ProductRow[] }>('/products', { params: { search: debouncedQ, limit: 10 } });
+      const res = await apiClient.get<{ products: ProductRow[] }>('/products', { params: { q: debouncedQ || undefined, limit: 12 } });
       return res.data.products ?? [];
     },
-    enabled: debouncedQ.trim().length >= 1,
+    enabled: open,
+    staleTime: 15_000,
   });
 
   return (
-    <div className="relative">
+    <div ref={containerRef} className="relative">
       <div className="flex items-center gap-2 rounded-xl border border-slate-600 bg-slate-700/50 px-3 py-2.5">
         <Search size={15} className="text-slate-400 flex-shrink-0" />
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
+          onFocus={() => setFocused(true)}
           placeholder="ابحث عن منتج بالاسم أو الباركود..."
           className="flex-1 outline-none text-sm bg-transparent text-slate-200 placeholder:text-slate-500"
           dir="rtl"
         />
         {isFetching && <span className="text-[10px] text-slate-400">...</span>}
       </div>
-      {debouncedQ.trim().length >= 1 && (data?.length ?? 0) > 0 && (
-        <div className="absolute z-20 w-full mt-1 rounded-xl border border-slate-600 shadow-2xl overflow-hidden bg-slate-800">
+      {open && (data?.length ?? 0) > 0 && (
+        <div className="absolute z-20 w-full mt-1 rounded-xl border border-slate-600 shadow-2xl overflow-hidden bg-slate-800 max-h-72 overflow-y-auto">
           {data!.map((p) => (
             <button
               key={p.id}
-              onClick={() => { onSelect(p); setQ(''); }}
+              onMouseDown={() => { onSelect(p); setQ(''); setFocused(false); }}
               className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-slate-700 text-right border-b border-slate-700 last:border-0 transition-colors"
             >
               <Package size={14} className="text-slate-400 flex-shrink-0" />
@@ -72,7 +89,7 @@ function ProductSearch({ onSelect }: { onSelect: (p: ProductRow) => void }) {
           ))}
         </div>
       )}
-      {debouncedQ.trim().length >= 1 && data?.length === 0 && !isFetching && (
+      {open && data?.length === 0 && !isFetching && (
         <div className="absolute z-20 w-full mt-1 rounded-xl border border-slate-600 p-4 text-center text-sm text-slate-400 bg-slate-800">
           لا نتائج
         </div>

@@ -59,6 +59,21 @@ export async function salesRoutes(fastify: FastifyInstance) {
     }
   );
 
+  // GET /api/sales/search — بحث سريع بالفواتير (للكاشير+)
+  fastify.get(
+    '/api/sales/search',
+    { onRequest: [fastify.authenticate, requireRole(ROLES.CASHIER_UP)] },
+    async (request) => {
+      const q = request.query as Record<string, string>;
+      const result = await svc.listSales({
+        q:     q.q || undefined,
+        limit: q.limit ? Math.min(parseInt(q.limit, 10), 20) : 10,
+        page:  1,
+      });
+      return { success: true, sales: result.sales };
+    }
+  );
+
   // GET /api/sales — قائمة المبيعات
   fastify.get(
     '/api/sales',
@@ -70,6 +85,7 @@ export async function salesRoutes(fastify: FastifyInstance) {
         customer_id: q.customer_id ? parseInt(q.customer_id, 10) : undefined,
         date_from:   q.date_from,
         date_to:     q.date_to,
+        q:           q.q || undefined,
         page:        q.page  ? parseInt(q.page, 10)  : 1,
         limit:       q.limit ? parseInt(q.limit, 10) : 20,
       });
