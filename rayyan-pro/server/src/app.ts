@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { existsSync } from 'fs';
 import { errorHandler } from './shared/middleware/errorHandler.js';
+import { licenseGuard }  from './shared/middleware/licenseGuard.js';
 import { authRoutes }       from './modules/auth/auth.router.js';
 import { usersRoutes }      from './modules/users/users.router.js';
 import { categoriesRoutes } from './modules/categories/categories.router.js';
@@ -23,6 +24,7 @@ import { reportsRoutes }       from './modules/reports/reports.router.js';
 import { auditLogsRoutes }     from './modules/auditLogs/auditLogs.router.js';
 import { settingsRoutes }      from './modules/settings/settings.router.js';
 import { adminRoutes }         from './modules/admin/admin.router.js';
+import { licenseRoutes }       from './modules/license/license.router.js';
 
 declare module '@fastify/jwt' {
   interface FastifyJWT {
@@ -83,13 +85,19 @@ export async function buildApp() {
 
   app.setErrorHandler(errorHandler);
 
+  // ── License guard — runs before all API routes ──────────────────────────
+  app.addHook('onRequest', licenseGuard);
+
   // Health check
   app.get('/health', async () => ({
     success: true,
     app: 'Rayyan Pro',
-    version: '0.1.0',
+    version: '1.0.0',
     timestamp: new Date().toISOString(),
   }));
+
+  // ── License module (must be first — no auth required) ──────────────────
+  await app.register(licenseRoutes);
 
   // Modules — Phase 0/1/2
   await app.register(authRoutes);
