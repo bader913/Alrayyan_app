@@ -214,7 +214,7 @@ export default function CustomersPage() {
             ) : customers.map(c => (
               <tr key={c.id} className="border-t border-slate-700 hover:bg-slate-750 transition">
                 <td className="px-4 py-3">
-                  <button onClick={() => openAccount(c)} className="font-medium text-white hover:text-blue-400 hover:underline transition text-right">
+                  <button onClick={() => openAccount(c)} className="font-medium text-blue-600 hover:text-blue-500 hover:underline transition text-right">
                     {c.name}
                   </button>
                 </td>

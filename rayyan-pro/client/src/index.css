@@ -203,3 +203,12 @@ html:not(.dark-mode) tr.hover\:bg-slate-700\/30:hover { background-color: rgba(0
 
 /* Divide lines */
 html:not(.dark-mode) .divide-slate-700 > * + * { border-color: var(--border) !important; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DARK MODE — Fix pages that hard-code light-mode colors (e.g. ReturnsPage)
+   ═══════════════════════════════════════════════════════════════════════════ */
+html.dark-mode .text-slate-800  { color: var(--text-heading)   !important; }
+html.dark-mode .text-slate-700  { color: var(--text-body)      !important; }
+html.dark-mode .text-slate-600  { color: var(--text-secondary) !important; }
+html.dark-mode .hover\:bg-slate-50:hover  { background-color: var(--bg-muted) !important; }
+html.dark-mode .hover\:bg-slate-100:hover { background-color: var(--bg-muted) !important; }

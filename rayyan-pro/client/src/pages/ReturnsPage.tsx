@@ -42,8 +42,8 @@ function ReturnDetail({ id, onClose }: { id: number; onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
-      <div className="w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden" style={{ background: '#fff' }}>
-        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: '#e2e8f0' }}>
+      <div className="w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden" style={{ background: 'var(--bg-card)' }}>
+        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--border)' }}>
           <h3 className="font-black text-slate-800">تفاصيل المرتجع</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
         </div>
@@ -60,7 +60,7 @@ function ReturnDetail({ id, onClose }: { id: number; onClose: () => void }) {
                 { label: 'السبب',          value: data.reason ?? '—' },
                 { label: 'التاريخ',        value: new Date(data.created_at).toLocaleDateString('en-GB') },
               ].map(({ label, value }) => (
-                <div key={label} className="rounded-xl p-3" style={{ background: '#f8fafc' }}>
+                <div key={label} className="rounded-xl p-3" style={{ background: 'var(--bg-subtle)' }}>
                   <div className="text-[10px] text-slate-400 mb-0.5">{label}</div>
                   <div className="text-sm font-bold text-slate-700">{value}</div>
                 </div>
@@ -73,7 +73,7 @@ function ReturnDetail({ id, onClose }: { id: number; onClose: () => void }) {
             </div>
             <table className="w-full text-sm" dir="rtl">
               <thead>
-                <tr style={{ background: '#f8fafc' }}>
+                <tr style={{ background: 'var(--bg-subtle)' }}>
                   {['المنتج', 'الكمية', 'سعر الوحدة', 'الإجمالي'].map((h) => (
                     <th key={h} className="text-right px-3 py-2 text-xs font-black text-slate-500">{h}</th>
                   ))}
@@ -81,7 +81,7 @@ function ReturnDetail({ id, onClose }: { id: number; onClose: () => void }) {
               </thead>
               <tbody>
                 {data.items?.map((item) => (
-                  <tr key={item.id} className="border-b" style={{ borderColor: '#f1f5f9' }}>
+                  <tr key={item.id} className="border-b" style={{ borderColor: 'var(--border)' }}>
                     <td className="px-3 py-2 font-bold text-slate-700">{item.product_name}</td>
                     <td className="px-3 py-2 text-slate-600">{fmtQty(item.quantity, 0)} {item.unit}</td>
                     <td className="px-3 py-2 text-slate-600">{fmt(item.unit_price)}</td>
@@ -191,8 +191,8 @@ function CreateReturnModal({ onClose, onDone }: { onClose: () => void; onDone: (
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
-      <div className="w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden flex flex-col" style={{ background: '#fff', maxHeight: '92vh' }}>
-        <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0" style={{ borderColor: '#e2e8f0' }}>
+      <div className="w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden flex flex-col" style={{ background: 'var(--bg-card)', maxHeight: '92vh' }}>
+        <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0" style={{ borderColor: 'var(--border)' }}>
           <h3 className="font-black text-slate-800">مرتجع جديد</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
         </div>
@@ -201,7 +201,7 @@ function CreateReturnModal({ onClose, onDone }: { onClose: () => void; onDone: (
           {/* Sale Search */}
           <div ref={searchRef} className="relative">
             <label className="block text-xs font-bold text-slate-600 mb-1.5">بحث بفاتورة البيع</label>
-            <div className="flex items-center gap-2 rounded-xl border px-3 py-2.5 focus-within:border-emerald-500 transition-colors" style={{ borderColor: '#e2e8f0' }}>
+            <div className="flex items-center gap-2 rounded-xl border px-3 py-2.5 focus-within:border-emerald-500 transition-colors" style={{ borderColor: 'var(--border)' }}>
               <Search size={14} className="text-slate-400 flex-shrink-0" />
               <input
                 type="text"
@@ -220,7 +220,7 @@ function CreateReturnModal({ onClose, onDone }: { onClose: () => void; onDone: (
               )}
             </div>
             {searchOpen && (
-              <div className="absolute z-50 w-full mt-1 rounded-xl border shadow-lg overflow-hidden" style={{ background: '#fff', borderColor: '#e2e8f0' }}>
+              <div className="absolute z-50 w-full mt-1 rounded-xl border shadow-lg overflow-hidden" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
                 {(searchData ?? []).length === 0 ? (
                   <div className="px-4 py-3 text-sm text-slate-400 text-center">لا توجد نتائج</div>
                 ) : (
@@ -229,7 +229,7 @@ function CreateReturnModal({ onClose, onDone }: { onClose: () => void; onDone: (
                       key={s.id}
                       onMouseDown={() => loadSaleById(s.id)}
                       className="w-full flex items-center gap-3 px-4 py-3 text-sm text-right hover:bg-slate-50 border-b last:border-b-0 transition-colors"
-                      style={{ borderColor: '#f1f5f9' }}
+                      style={{ borderColor: 'var(--border)' }}
                     >
                       <FileText size={14} className="text-emerald-500 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
@@ -257,10 +257,10 @@ function CreateReturnModal({ onClose, onDone }: { onClose: () => void; onDone: (
               </div>
 
               {/* Items */}
-              <div className="rounded-xl overflow-hidden border" style={{ borderColor: '#e2e8f0' }}>
+              <div className="rounded-xl overflow-hidden border" style={{ borderColor: 'var(--border)' }}>
                 <table className="w-full text-sm" dir="rtl">
                   <thead>
-                    <tr style={{ background: '#f8fafc' }}>
+                    <tr style={{ background: 'var(--bg-subtle)' }}>
                       <th className="px-3 py-2 text-right text-xs font-black text-slate-500 w-10">✓</th>
                       {['المنتج', 'الكمية الأصلية', 'كمية الإرجاع', 'سعر الوحدة', 'الإجمالي'].map((h) => (
                         <th key={h} className="text-right px-3 py-2 text-xs font-black text-slate-500">{h}</th>
@@ -269,7 +269,7 @@ function CreateReturnModal({ onClose, onDone }: { onClose: () => void; onDone: (
                   </thead>
                   <tbody>
                     {returnItems.map((item, idx) => (
-                      <tr key={item.sale_item_id} className="border-b" style={{ borderColor: '#f1f5f9' }}>
+                      <tr key={item.sale_item_id} className="border-b" style={{ borderColor: 'var(--border)' }}>
                         <td className="px-3 py-2">
                           <input
                             type="checkbox"
@@ -294,7 +294,7 @@ function CreateReturnModal({ onClose, onDone }: { onClose: () => void; onDone: (
                               } : i)
                             )}
                             className="w-full rounded-lg border px-2 py-1 text-sm outline-none text-center"
-                            style={{ borderColor: '#e2e8f0' }}
+                            style={{ borderColor: 'var(--border)' }}
                             min={0.001}
                             max={item.max_qty}
                             step={0.001}
@@ -310,7 +310,7 @@ function CreateReturnModal({ onClose, onDone }: { onClose: () => void; onDone: (
                   </tbody>
                   {selectedItems.length > 0 && (
                     <tfoot>
-                      <tr style={{ background: '#fef2f2' }}>
+                      <tr style={{ background: 'rgba(239,68,68,0.08)' }}>
                         <td colSpan={5} className="px-3 py-2.5 font-black text-slate-700 text-sm">إجمالي المرتجع</td>
                         <td className="px-3 py-2.5 font-black text-rose-700">{fmt(total)}</td>
                       </tr>
@@ -332,9 +332,9 @@ function CreateReturnModal({ onClose, onDone }: { onClose: () => void; onDone: (
                         onClick={() => setReturnMethod(m)}
                         className="py-2.5 rounded-xl text-sm font-bold transition-all border-2"
                         style={{
-                          background: active ? c.bg : '#fff',
-                          color: active ? c.color : '#64748b',
-                          borderColor: active ? c.color : '#e2e8f0',
+                          background: active ? c.bg : 'var(--bg-card)',
+                          color: active ? c.color : 'var(--text-secondary)',
+                          borderColor: active ? c.color : 'var(--border)',
                         }}
                       >
                         {RETURN_METHOD_LABELS[m]}
@@ -352,7 +352,7 @@ function CreateReturnModal({ onClose, onDone }: { onClose: () => void; onDone: (
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
                     className="w-full rounded-xl border px-3 py-2.5 text-sm outline-none focus:border-emerald-500"
-                    style={{ borderColor: '#e2e8f0' }}
+                    style={{ borderColor: 'var(--border)' }}
                     placeholder="مثال: منتج تالف"
                   />
                 </div>
@@ -362,7 +362,7 @@ function CreateReturnModal({ onClose, onDone }: { onClose: () => void; onDone: (
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     className="w-full rounded-xl border px-3 py-2.5 text-sm outline-none focus:border-emerald-500"
-                    style={{ borderColor: '#e2e8f0' }}
+                    style={{ borderColor: 'var(--border)' }}
                     placeholder="اختياري"
                   />
                 </div>
@@ -371,7 +371,7 @@ function CreateReturnModal({ onClose, onDone }: { onClose: () => void; onDone: (
           )}
 
           {error && (
-            <div className="flex items-center gap-2 rounded-xl p-3 text-sm text-rose-700" style={{ background: '#fef2f2' }}>
+            <div className="flex items-center gap-2 rounded-xl p-3 text-sm text-rose-700" style={{ background: 'rgba(239,68,68,0.08)' }}>
               <AlertTriangle size={14} />
               {error}
             </div>
@@ -379,7 +379,7 @@ function CreateReturnModal({ onClose, onDone }: { onClose: () => void; onDone: (
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t flex-shrink-0" style={{ borderColor: '#e2e8f0', background: '#f8fafc' }}>
+        <div className="flex items-center justify-between px-6 py-4 border-t flex-shrink-0" style={{ borderColor: 'var(--border)', background: 'var(--bg-subtle)' }}>
           <div className="text-sm">
             {selectedItems.length > 0 && (
               <>
@@ -448,10 +448,10 @@ export default function ReturnsPage() {
       </div>
 
       {/* Table */}
-      <div className="rounded-2xl overflow-hidden border shadow-sm" style={{ background: '#fff', borderColor: '#e2e8f0' }}>
+      <div className="rounded-2xl overflow-hidden border shadow-sm" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
         <table className="w-full text-sm" dir="rtl">
           <thead>
-            <tr style={{ background: '#f8fafc' }}>
+            <tr style={{ background: 'var(--bg-subtle)' }}>
               {['رقم المرتجع', 'فاتورة البيع', 'العميل', 'الإجمالي', 'طريقة الإرجاع', 'التاريخ', ''].map((h) => (
                 <th key={h} className="text-right px-4 py-3 text-xs font-black text-slate-500">{h}</th>
               ))}
@@ -472,7 +472,7 @@ export default function ReturnsPage() {
             {returns.map((r) => {
               const colors = RETURN_METHOD_COLORS[r.return_method];
               return (
-                <tr key={r.id} className="border-b hover:bg-slate-50 transition-colors" style={{ borderColor: '#f1f5f9' }}>
+                <tr key={r.id} className="border-b hover:bg-slate-50 transition-colors" style={{ borderColor: 'var(--border)' }}>
                   <td className="px-4 py-3">
                     <span className="font-black text-slate-700 text-xs">{r.return_number}</span>
                   </td>
@@ -517,7 +517,7 @@ export default function ReturnsPage() {
         </table>
 
         {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t" style={{ borderColor: '#f1f5f9' }}>
+          <div className="flex items-center justify-between px-4 py-3 border-t" style={{ borderColor: 'var(--border)' }}>
             <span className="text-xs text-slate-400">{total} نتيجة — صفحة {page} من {totalPages}</span>
             <div className="flex gap-1">
               <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 disabled:opacity-30">

@@ -181,7 +181,7 @@ export default function SuppliersPage() {
             ) : suppliers.map(s => (
               <tr key={s.id} className="border-t border-slate-700 hover:bg-slate-750 transition">
                 <td className="px-4 py-3">
-                  <button onClick={() => openAccount(s)} className="font-medium text-white hover:text-amber-400 hover:underline transition text-right">
+                  <button onClick={() => openAccount(s)} className="font-medium text-amber-600 hover:text-amber-500 hover:underline transition text-right">
                     {s.name}
                   </button>
                 </td>

@@ -573,11 +573,10 @@ export default function PurchasesPage() {
                   <td className="px-4 py-3 font-bold text-emerald-400">{fmt(p.paid_amount)}</td>
                   <td className="px-4 py-3">
                     <span
-                      className={`inline-block px-2.5 py-1 rounded-full text-xs font-bold ${
-                        isPaid
-                          ? 'bg-emerald-900/40 text-emerald-400'
-                          : 'bg-rose-900/40 text-rose-400'
-                      }`}
+                      className="inline-block px-2.5 py-1 rounded-full text-xs font-bold"
+                      style={isPaid
+                        ? { background: 'rgba(16,185,129,0.12)', color: '#059669' }
+                        : { background: 'rgba(239,68,68,0.12)', color: '#dc2626' }}
                     >
                       {isPaid ? '✓ مسدد' : fmt(due)}
                     </span>
