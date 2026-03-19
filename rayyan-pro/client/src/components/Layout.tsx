@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, ShoppingCart, Package,
   Users, UserCheck, BarChart2, Settings, LogOut, ChevronLeft,
@@ -10,6 +10,7 @@ import { useQuery } from '@tanstack/react-query';
 import { settingsApi } from '../api/settings.ts';
 import { useEffect, useState } from 'react';
 import { useLicense } from '../context/LicenseContext.ts';
+import { usePosStore } from '../store/posStore.ts';
 
 const ZOOM_STEP = 5;
 const ZOOM_MIN  = 70;
@@ -67,6 +68,11 @@ export default function Layout() {
     }
   }, [settings]);
 
+  /* ── Cart nav guard ── */
+  const location = useLocation();
+  const cartCount = usePosStore((s) => s.cartCount);
+  const [pendingPath, setPendingPath] = useState<string | null>(null);
+
   /* ── Zoom ── */
   const [zoom, setZoom] = useState<number>(() => {
     const saved = localStorage.getItem('ui-zoom');
@@ -81,6 +87,17 @@ export default function Layout() {
   const zoomReset = () => setZoom(100);
 
   const primary = 'var(--primary)';
+
+  /* Intercept sidebar nav when POS has items in cart */
+  const handleNavClick = (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    targetPath: string,
+  ) => {
+    if (cartCount > 0 && location.pathname === '/pos' && targetPath !== '/pos') {
+      e.preventDefault();
+      setPendingPath(targetPath);
+    }
+  };
 
   const handleLogout = async () => {
     if (refreshToken) {
@@ -128,6 +145,7 @@ export default function Layout() {
               <NavLink
                 key={item.path}
                 to={item.path}
+                onClick={(e) => handleNavClick(e, item.path)}
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all group ${
                     isActive ? 'text-white shadow-sm' : ''
@@ -260,6 +278,65 @@ export default function Layout() {
           <Outlet />
         </div>
       </main>
+
+      {/* ─── Cart Guard Dialog ───────────────────────────────────────────────── */}
+      {pendingPath && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.55)' }}
+        >
+          <div
+            className="w-[340px] rounded-2xl shadow-2xl p-6 flex flex-col gap-4"
+            style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
+          >
+            <div className="flex flex-col items-center gap-3 text-center">
+              <div
+                className="w-14 h-14 rounded-2xl flex items-center justify-center"
+                style={{ background: 'rgba(239,68,68,0.12)' }}
+              >
+                <AlertTriangle size={28} className="text-red-500" />
+              </div>
+              <h2 className="text-base font-black" style={{ color: 'var(--text-primary)' }}>
+                السلة تحتوي على منتجات
+              </h2>
+              <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                لديك{' '}
+                <span className="font-black text-red-500">{cartCount}</span>
+                {' '}منتج في السلة.
+                <br />
+                إذا غادرت الآن ستُمسح السلة بالكامل.
+                <br />
+                هل أنت متأكد؟
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  const path = pendingPath;
+                  setPendingPath(null);
+                  navigate(path);
+                }}
+                className="flex-1 py-2.5 rounded-xl text-sm font-black text-white transition-opacity hover:opacity-90"
+                style={{ background: '#ef4444' }}
+              >
+                نعم، امسح وانتقل
+              </button>
+              <button
+                onClick={() => setPendingPath(null)}
+                className="flex-1 py-2.5 rounded-xl text-sm font-black transition-colors"
+                style={{
+                  background: 'var(--bg-muted)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border)',
+                }}
+              >
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

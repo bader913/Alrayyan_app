@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useBlocker } from 'react-router-dom';
 import {
   Search, X, Plus, Minus, ShoppingCart, User,
   Printer, Check, AlertCircle, Scale, DollarSign, Clock,
-  RefreshCw, Bookmark, BookOpen, Trash2, AlertTriangle,
+  RefreshCw, Bookmark, BookOpen, Trash2,
 } from 'lucide-react';
+import { usePosStore } from '../store/posStore.ts';
 import { useQuery } from '@tanstack/react-query';
 import {
   useTerminals, useCurrentShift, useOpenShift, useCloseShift,
@@ -82,13 +82,12 @@ export default function POSPage() {
   const [paidAmount, setPaidAmount]   = useState(0);
   const [saleNotes, setSaleNotes]     = useState('');
 
-  // ── Navigation guard: block leaving when cart has items ──────────────────
-  const blocker = useBlocker(
-    ({ currentLocation, nextLocation }) =>
-      cart.length > 0 &&
-      view === 'pos' &&
-      currentLocation.pathname !== nextLocation.pathname,
-  );
+  // ── Sync cart count to global store (for Layout nav guard) ───────────────
+  const setCartCount = usePosStore((s) => s.setCartCount);
+  useEffect(() => {
+    if (view === 'pos') setCartCount(cart.length);
+    return () => setCartCount(0);   // clear on unmount
+  }, [cart.length, view, setCartCount]);
 
   // ── Product search ────────────────────────────────────────────────────────
   const [searchQ, setSearchQ]   = useState('');
@@ -1251,65 +1250,6 @@ export default function POSPage() {
         </div>
       )}
 
-      {/* ─── Navigation Guard Modal ─────────────────────────────────────────── */}
-      {blocker.state === 'blocked' && (
-        <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center"
-          style={{ background: 'rgba(0,0,0,0.55)' }}
-        >
-          <div
-            className="w-[340px] rounded-2xl shadow-2xl p-6 flex flex-col gap-4"
-            style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
-          >
-            {/* Icon + Title */}
-            <div className="flex flex-col items-center gap-3 text-center">
-              <div
-                className="w-14 h-14 rounded-2xl flex items-center justify-center"
-                style={{ background: 'rgba(239,68,68,0.12)' }}
-              >
-                <AlertTriangle size={28} className="text-red-500" />
-              </div>
-              <h2 className="text-base font-black" style={{ color: 'var(--text-primary)' }}>
-                السلة تحتوي على منتجات
-              </h2>
-              <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                لديك{' '}
-                <span className="font-black text-red-500">{cart.length}</span>
-                {' '}منتج في السلة.
-                <br />
-                إذا غادرت الآن ستُمسح السلة بالكامل.
-                <br />
-                هل أنت متأكد؟
-              </p>
-            </div>
-
-            {/* Actions */}
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setCart([]);
-                  blocker.proceed();
-                }}
-                className="flex-1 py-2.5 rounded-xl text-sm font-black text-white transition-opacity hover:opacity-90"
-                style={{ background: '#ef4444' }}
-              >
-                نعم، امسح وانتقل
-              </button>
-              <button
-                onClick={() => blocker.reset()}
-                className="flex-1 py-2.5 rounded-xl text-sm font-black transition-colors"
-                style={{
-                  background: 'var(--bg-muted)',
-                  color: 'var(--text-primary)',
-                  border: '1px solid var(--border)',
-                }}
-              >
-                إلغاء
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
