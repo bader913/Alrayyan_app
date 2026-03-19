@@ -25,6 +25,7 @@ import { auditLogsRoutes }     from './modules/auditLogs/auditLogs.router.js';
 import { settingsRoutes }      from './modules/settings/settings.router.js';
 import { adminRoutes }         from './modules/admin/admin.router.js';
 import { licenseRoutes }       from './modules/license/license.router.js';
+import { expensesRoutes }      from './modules/expenses/expenses.router.js';
 
 declare module '@fastify/jwt' {
   interface FastifyJWT {
@@ -120,6 +121,8 @@ export async function buildApp() {
   await app.register(auditLogsRoutes);
   await app.register(settingsRoutes);
   await app.register(adminRoutes);
+  // Phase 8 — Expenses
+  await app.register(expensesRoutes);
 
   // Production: serve compiled React client from client/dist
   if (IS_PROD && existsSync(CLIENT_DIR)) {

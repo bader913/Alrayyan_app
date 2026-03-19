@@ -19,6 +19,13 @@ import ReportsPage from './pages/ReportsPage.tsx';
 import AuditLogPage from './pages/AuditLogPage.tsx';
 import SettingsPage from './pages/SettingsPage.tsx';
 import SubscriptionPage from './pages/SubscriptionPage.tsx';
+import ExpensesPage      from './pages/ExpensesPage.tsx';
+import InvoicesPage      from './pages/InvoicesPage.tsx';
+import ProfitCalcPage    from './pages/ProfitCalcPage.tsx';
+import BarcodePage       from './pages/BarcodePage.tsx';
+import PriceTagsPage     from './pages/PriceTagsPage.tsx';
+import QrCodePage        from './pages/QrCodePage.tsx';
+import CurrencyCalcPage  from './pages/CurrencyCalcPage.tsx';
 
 // ── Global toast for write-blocked actions ────────────────────────────────────
 function LicenseBlockToast() {
@@ -179,6 +186,23 @@ export default function App() {
             <Route element={<RequireRole roles={['admin']} />}>
               <Route path="/settings" element={<SettingsPage />} />
             </Route>
+
+            {/* Tools — admin + manager only */}
+            <Route element={<RequireRole roles={['admin', 'manager']} />}>
+              <Route path="/expenses"   element={<ExpensesPage />} />
+              <Route path="/invoices"   element={<InvoicesPage />} />
+              <Route path="/profit-calc" element={<ProfitCalcPage />} />
+            </Route>
+
+            {/* Tools — admin + manager + warehouse */}
+            <Route element={<RequireRole roles={['admin', 'manager', 'warehouse']} />}>
+              <Route path="/barcodes"   element={<BarcodePage />} />
+              <Route path="/price-tags" element={<PriceTagsPage />} />
+            </Route>
+
+            {/* Tools — all roles */}
+            <Route path="/qr-codes"       element={<QrCodePage />} />
+            <Route path="/currency-calc"  element={<CurrencyCalcPage />} />
 
           </Route>
         </Route>
