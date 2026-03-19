@@ -38,7 +38,7 @@ export async function reportsRoutes(fastify: FastifyInstance) {
         dbGet<{ total: string }>(`SELECT COUNT(*) AS total FROM sales s WHERE ${where}`, params),
         dbAll(`
           SELECT s.id, s.invoice_number, s.total_amount, s.discount AS discount_amount,
-                 s.paid_amount, s.payment_method, s.created_at,
+                 s.paid_amount, s.payment_method, s.created_at, s.customer_id,
                  ${PAYMENT_STATUS_EXPR} AS payment_status,
                  c.name AS customer_name, u.full_name AS cashier_name
           FROM sales s
@@ -98,7 +98,7 @@ export async function reportsRoutes(fastify: FastifyInstance) {
         dbGet<{ total: string }>(`SELECT COUNT(*) AS total FROM purchases p WHERE ${where}`, params),
         dbAll(`
           SELECT p.id, p.invoice_number, p.total_amount, p.paid_amount,
-                 p.created_at,
+                 p.created_at, p.supplier_id,
                  ${PAYMENT_STATUS_EXPR.replace(/paid_amount/g, 'p.paid_amount').replace(/total_amount/g, 'p.total_amount')} AS payment_status,
                  s.name AS supplier_name, u.full_name AS created_by_name
           FROM purchases p

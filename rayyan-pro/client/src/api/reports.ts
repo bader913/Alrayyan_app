@@ -5,7 +5,7 @@ interface SalesReportResponse {
   data: Array<{
     id: number; invoice_number: string; total_amount: string; discount_amount: string;
     paid_amount: string; payment_status: string; payment_method: string;
-    created_at: string; customer_name: string | null; cashier_name: string | null;
+    created_at: string; customer_id: number | null; customer_name: string | null; cashier_name: string | null;
   }>;
   summary: { totalRevenue: number; totalPaid: number; totalDiscount: number; invoiceCount: number };
   total: number; page: number; limit: number;
@@ -15,7 +15,7 @@ interface PurchasesReportResponse {
   success: boolean;
   data: Array<{
     id: number; invoice_number: string; total_amount: string; paid_amount: string;
-    payment_status: string; created_at: string; supplier_name: string | null; created_by_name: string | null;
+    payment_status: string; created_at: string; supplier_id: number | null; supplier_name: string | null; created_by_name: string | null;
   }>;
   summary: { totalAmount: number; totalPaid: number; totalDebt: number; count: number };
   total: number; page: number; limit: number;
