@@ -41,7 +41,7 @@ function saveParked(list: ParkedInvoice[]) {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const PAYMENT_LABELS: Record<string, string> = {
-  cash: 'نقداً', card: 'بطاقة', credit: 'آجل', mixed: 'مختلط',
+  cash: 'نقداً', card: 'شام كاش', credit: 'آجل', mixed: 'مختلط',
 };
 
 // ─── POS Page ─────────────────────────────────────────────────────────────────
@@ -88,6 +88,21 @@ export default function POSPage() {
     if (view === 'pos') setCartCount(cart.length);
     return () => setCartCount(0);   // clear on unmount
   }, [cart.length, view, setCartCount]);
+
+  // ── Keyboard shortcuts ────────────────────────────────────────────────────
+  // Keep a stable ref so the effect does not re-register on every render
+  const completeSaleRef = useRef<() => void>(() => {});
+  useEffect(() => { completeSaleRef.current = completeSale; }); // runs after every render
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (view !== 'pos') return;
+      if (e.key === 'F1') { e.preventDefault(); completeSaleRef.current(); }
+      if (e.key === 'F8') { e.preventDefault(); setCart([]); }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [view]); // only re-register when view changes
 
   // ── Product search ────────────────────────────────────────────────────────
   const [searchQ, setSearchQ]   = useState('');
@@ -457,7 +472,7 @@ export default function POSPage() {
                 ['عدد المبيعات', shiftSummary.sales_count],
                 ['إجمالي المبيعات', fmt(shiftSummary.sales_total)],
                 ['مبيعات نقدية', fmt(shiftSummary.cash_total)],
-                ['مبيعات بطاقة', fmt(shiftSummary.card_total)],
+                ['مبيعات شام كاش', fmt(shiftSummary.card_total)],
                 ['مبيعات آجل', fmt(shiftSummary.credit_total)],
                 ['الرصيد الافتتاحي', fmt(shiftSummary.opening_balance)],
                 ['النقد المتوقع', fmt(shiftSummary.expected_cash)],
@@ -1012,14 +1027,27 @@ export default function POSPage() {
               </div>
             )}
 
-            {/* Complete button */}
+          </div>
+
+          {/* ── Complete Sale — always visible at bottom ──────────────────── */}
+          <div className="px-4 pb-4 pt-2 flex-shrink-0">
             <button
               onClick={completeSale}
               disabled={createSaleMut.isPending || cart.length === 0}
-              className="w-full py-3.5 rounded-xl text-white font-black text-base transition-opacity disabled:opacity-50"
+              className="w-full py-4 rounded-xl text-white font-black text-base transition-opacity disabled:opacity-40 flex items-center justify-center gap-3"
               style={{ background: '#059669' }}
             >
-              {createSaleMut.isPending ? 'جارٍ الحفظ...' : `إتمام البيع · ${fmt(total)}`}
+              <span>
+                {createSaleMut.isPending ? 'جارٍ الحفظ...' : `إتمام البيع · ${fmt(total)}`}
+              </span>
+              {!createSaleMut.isPending && (
+                <span
+                  className="text-[10px] font-black px-1.5 py-0.5 rounded"
+                  style={{ background: 'rgba(255,255,255,0.2)' }}
+                >
+                  F1
+                </span>
+              )}
             </button>
           </div>
         </div>

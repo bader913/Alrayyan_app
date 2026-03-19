@@ -8,7 +8,7 @@ const fmtNum = (n: string | number) =>
 
 const PAYMENT_LABELS: Record<string, string> = {
   cash:   'نقداً',
-  card:   'بطاقة',
+  card:   'شام كاش',
   credit: 'آجل',
   mixed:  'مختلط',
 };
