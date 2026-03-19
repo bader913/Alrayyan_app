@@ -13,7 +13,7 @@ const saleItemSchema = z.object({
 });
 
 const createSaleSchema = z.object({
-  shift_id:        z.number().int().positive('يجب تحديد الوردية'),
+  shift_id:        z.number().int().positive().nullable().optional(),
   pos_terminal_id: z.number().int().positive().nullable().optional(),
   customer_id:     z.number().int().positive().nullable().optional(),
   sale_type:       z.enum(['retail', 'wholesale']).default('retail'),
@@ -35,7 +35,7 @@ export async function salesRoutes(fastify: FastifyInstance) {
       const input = createSaleSchema.parse(request.body);
       const sale = await svc.createSale(
         {
-          shift_id:        input.shift_id,
+          shift_id:        input.shift_id ?? null,
           pos_terminal_id: input.pos_terminal_id ?? null,
           customer_id:     input.customer_id ?? null,
           sale_type:       input.sale_type,

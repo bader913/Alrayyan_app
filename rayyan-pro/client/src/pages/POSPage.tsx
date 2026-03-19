@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  Search, X, Plus, Minus, ShoppingCart, User, ChevronDown,
+  Search, X, Plus, Minus, ShoppingCart, User,
   Printer, Check, AlertCircle, Scale, DollarSign, Clock,
-  RefreshCw,
+  RefreshCw, Bookmark, BookOpen, Trash2,
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import {
   useTerminals, useCurrentShift, useOpenShift, useCloseShift,
   useCreateSale, useCustomerSearch, useCreateCustomer,
@@ -13,6 +14,28 @@ import {
 import { useProducts } from '../api/products.ts';
 import { printInvoice } from '../utils/print.ts';
 import { useCurrency } from '../hooks/useCurrency.ts';
+import { settingsApi } from '../api/settings.ts';
+
+// ─── Parked Invoices ──────────────────────────────────────────────────────────
+const PARKED_KEY = 'rayyan_parked_invoices';
+
+interface ParkedInvoice {
+  id:           string;
+  created_at:   string;
+  customer:     Customer | null;
+  cart:         CartItem[];
+  saleType:     'retail' | 'wholesale';
+  saleDiscount: number;
+  notes:        string;
+}
+
+function loadParked(): ParkedInvoice[] {
+  try { return JSON.parse(localStorage.getItem(PARKED_KEY) ?? '[]'); }
+  catch { return []; }
+}
+function saveParked(list: ParkedInvoice[]) {
+  localStorage.setItem(PARKED_KEY, JSON.stringify(list));
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -25,6 +48,18 @@ const PAYMENT_LABELS: Record<string, string> = {
 export default function POSPage() {
   const { fmt, rate, symbol } = useCurrency();
   const [view, setView] = useState<'loading' | 'open-shift' | 'pos' | 'close-shift' | 'receipt'>('loading');
+
+  // ── App Settings ──────────────────────────────────────────────────────────
+  const { data: appSettings, isLoading: settingsLoading } = useQuery({
+    queryKey: ['settings'],
+    queryFn:  () => settingsApi.getAll().then((r) => r.data.settings),
+    staleTime: 30_000,
+  });
+  const shiftsEnabled = appSettings?.enable_shifts === 'true';
+
+  // ── Parked Invoices ───────────────────────────────────────────────────────
+  const [parkedList, setParkedList]   = useState<ParkedInvoice[]>(loadParked);
+  const [showParked, setShowParked]   = useState(false);
 
   // ── Shift state ──────────────────────────────────────────────────────────
   const { data: currentShift, isLoading: shiftLoading, refetch: refetchShift } = useCurrentShift();
@@ -84,10 +119,11 @@ export default function POSPage() {
 
   // ── Shift view control ────────────────────────────────────────────────────
   useEffect(() => {
-    if (shiftLoading) { setView('loading'); return; }
+    if (settingsLoading || (shiftsEnabled && shiftLoading)) { setView('loading'); return; }
+    if (!shiftsEnabled) { setView('pos'); return; }
     if (currentShift?.status === 'open') setView('pos');
     else setView('open-shift');
-  }, [currentShift, shiftLoading]);
+  }, [currentShift, shiftLoading, shiftsEnabled, settingsLoading]);
 
   // ── Computed totals ───────────────────────────────────────────────────────
   const subtotal      = cart.reduce((s, i) => s + i.quantity * i.unit_price, 0);
@@ -181,14 +217,14 @@ export default function POSPage() {
 
   // ── Complete sale ─────────────────────────────────────────────────────────
   const completeSale = async () => {
-    if (!currentShift) return;
+    if (shiftsEnabled && !currentShift) return;
     if (cart.length === 0) { setSaleError('السلة فارغة'); return; }
     setSaleError('');
 
     try {
       const sale = await createSaleMut.mutateAsync({
-        shift_id:        parseInt(currentShift.id, 10),
-        pos_terminal_id: currentShift.pos_terminal_id ? parseInt(currentShift.pos_terminal_id, 10) : null,
+        shift_id:        shiftsEnabled && currentShift ? parseInt(currentShift.id, 10) : null,
+        pos_terminal_id: currentShift?.pos_terminal_id ? parseInt(currentShift.pos_terminal_id, 10) : null,
         customer_id:     customer ? parseInt(customer.id, 10) : null,
         sale_type:       saleType,
         items: cart.map((i) => ({
@@ -230,6 +266,48 @@ export default function POSPage() {
     setLastSale(null);
     setView('pos');
     setTimeout(() => barcodeRef.current?.focus(), 100);
+  };
+
+  // ── Park (احتجاز) current cart ────────────────────────────────────────────
+  const parkCart = () => {
+    if (cart.length === 0) return;
+    const entry: ParkedInvoice = {
+      id:           `${Date.now()}`,
+      created_at:   new Date().toISOString(),
+      customer,
+      cart:         [...cart],
+      saleType,
+      saleDiscount,
+      notes:        saleNotes,
+    };
+    const updated = [entry, ...parkedList];
+    setParkedList(updated);
+    saveParked(updated);
+    clearCart();
+    setTimeout(() => barcodeRef.current?.focus(), 100);
+  };
+
+  // ── Restore a parked invoice into the current cart ────────────────────────
+  const restoreParked = (id: string) => {
+    const entry = parkedList.find((p) => p.id === id);
+    if (!entry) return;
+    setCart(entry.cart);
+    setCustomer(entry.customer);
+    setSaleType(entry.saleType);
+    setSaleDiscount(entry.saleDiscount);
+    setSaleNotes(entry.notes);
+    setSaleError('');
+    const updated = parkedList.filter((p) => p.id !== id);
+    setParkedList(updated);
+    saveParked(updated);
+    setShowParked(false);
+    setTimeout(() => barcodeRef.current?.focus(), 100);
+  };
+
+  const deleteParked = (id: string) => {
+    const updated = parkedList.filter((p) => p.id !== id);
+    setParkedList(updated);
+    saveParked(updated);
   };
 
   // ── Open shift ────────────────────────────────────────────────────────────
@@ -532,30 +610,68 @@ export default function POSPage() {
   }
 
   // ── MAIN POS VIEW ─────────────────────────────────────────────────────────
-  const shift = currentShift as Shift;
+  const shift = currentShift as Shift | null;
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-slate-100" dir="rtl">
 
-      {/* ─── Shift Bar ─────────────────────────────────────────────────────── */}
+      {/* ─── Top Bar ───────────────────────────────────────────────────────── */}
       <div
-        className="flex items-center gap-4 px-5 py-2.5 border-b flex-shrink-0"
+        className="flex items-center gap-3 px-5 py-2.5 border-b flex-shrink-0"
         style={{ background: '#fff', borderColor: '#e2e8f0' }}
       >
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-emerald-500" />
-          <span className="text-sm font-bold text-slate-700">
-            {shift.terminal_name ?? 'بلا جهاز'} · {shift.cashier_name}
-          </span>
-        </div>
+        {/* Shift info — only when shifts enabled */}
+        {shiftsEnabled && shift && (
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span className="text-sm font-bold text-slate-700">
+              {shift.terminal_name ?? 'بلا جهاز'} · {shift.cashier_name}
+            </span>
+          </div>
+        )}
+        {!shiftsEnabled && (
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span className="text-sm font-bold text-slate-700">نقطة البيع</span>
+          </div>
+        )}
+
         <div className="flex-1" />
         <LiveTime />
+
+        {/* ─ Hold / Park button ─ */}
         <button
-          onClick={() => setView('close-shift')}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-red-500 hover:bg-red-50 text-xs font-black border border-red-100 transition-colors"
+          onClick={parkCart}
+          disabled={cart.length === 0}
+          title="احتجاز الفاتورة الحالية"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-amber-600 hover:bg-amber-50 text-xs font-black border border-amber-200 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
         >
-          إغلاق الوردية
+          <Bookmark size={13} /> احتجاز
         </button>
+
+        {/* ─ Parked list button ─ */}
+        <button
+          onClick={() => setShowParked(true)}
+          title="الفواتير المحتجزة"
+          className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sky-600 hover:bg-sky-50 text-xs font-black border border-sky-200 transition-colors"
+        >
+          <BookOpen size={13} /> محتجزة
+          {parkedList.length > 0 && (
+            <span className="absolute -top-1.5 -left-1.5 w-4 h-4 rounded-full bg-amber-500 text-white text-[10px] font-black flex items-center justify-center">
+              {parkedList.length}
+            </span>
+          )}
+        </button>
+
+        {/* ─ Close shift — only when shifts enabled ─ */}
+        {shiftsEnabled && (
+          <button
+            onClick={() => setView('close-shift')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-red-500 hover:bg-red-50 text-xs font-black border border-red-100 transition-colors"
+          >
+            إغلاق الوردية
+          </button>
+        )}
       </div>
 
       {/* ─── Main Area ──────────────────────────────────────────────────────── */}
@@ -900,6 +1016,86 @@ export default function POSPage() {
           </div>
         </div>
       </div>
+
+      {/* ─── Parked Invoices Panel ────────────────────────────────────────── */}
+      {showParked && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" dir="rtl"
+          onClick={(e) => e.target === e.currentTarget && setShowParked(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b">
+              <div className="flex items-center gap-2">
+                <BookOpen size={18} className="text-sky-600" />
+                <h2 className="font-black text-slate-800 text-base">الفواتير المحتجزة</h2>
+                {parkedList.length > 0 && (
+                  <span className="bg-amber-100 text-amber-700 text-xs font-black px-2 py-0.5 rounded-full">
+                    {parkedList.length}
+                  </span>
+                )}
+              </div>
+              <button onClick={() => setShowParked(false)} className="text-slate-400 hover:text-slate-600">
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto p-3 space-y-2">
+              {parkedList.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-12 text-slate-300">
+                  <Bookmark size={36} className="mb-2" />
+                  <span className="text-sm">لا توجد فواتير محتجزة</span>
+                </div>
+              )}
+              {parkedList.map((p) => {
+                const itemCount = p.cart.reduce((s, i) => s + i.quantity, 0);
+                const total     = p.cart.reduce((s, i) => s + i.total, 0) - p.saleDiscount;
+                const time      = new Date(p.created_at).toLocaleTimeString('ar-SY', { hour: '2-digit', minute: '2-digit' });
+                return (
+                  <div key={p.id} className="border border-slate-200 rounded-xl p-3.5 hover:border-emerald-300 transition-colors group">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs font-mono text-slate-400">{time}</span>
+                          {p.customer && (
+                            <span className="text-sm font-bold text-slate-700 truncate">{p.customer.name}</span>
+                          )}
+                          {!p.customer && (
+                            <span className="text-sm text-slate-400">بدون عميل</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-slate-500">
+                          <span>{p.cart.length} صنف · {itemCount.toFixed(1)} وحدة</span>
+                          <span className="font-black text-emerald-700 text-sm">{fmt(total)}</span>
+                        </div>
+                        {/* Items preview */}
+                        <div className="mt-1.5 text-xs text-slate-400 truncate">
+                          {p.cart.slice(0, 3).map((i) => i.product.name).join(' · ')}
+                          {p.cart.length > 3 && ` +${p.cart.length - 3}`}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <button
+                          onClick={() => deleteParked(p.id)}
+                          className="p-1.5 text-slate-300 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50"
+                          title="حذف"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                        <button
+                          onClick={() => restoreParked(p.id)}
+                          className="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-black transition-colors"
+                        >
+                          استعادة
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ─── Weighted Product Modal ────────────────────────────────────────── */}
       {weightModal.product && (

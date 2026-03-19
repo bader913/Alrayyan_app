@@ -13,7 +13,7 @@ export interface SaleItemInput {
 }
 
 export interface CreateSaleInput {
-  shift_id:        number;
+  shift_id:        number | null;
   pos_terminal_id: number | null;
   customer_id:     number | null;
   sale_type:       'retail' | 'wholesale';
@@ -65,17 +65,18 @@ export class SalesService {
     };
 
     await withTransaction(async (client) => {
-      // 1. تحقق من الوردية
-      const shiftRow = await client.query<{ status: string; pos_terminal_id: string }>(
-        'SELECT status, pos_terminal_id FROM shifts WHERE id = $1 FOR UPDATE',
-        [input.shift_id]
-      );
-
-      if (!shiftRow.rows[0]) {
-        throw Object.assign(new Error('الوردية غير موجودة'), { statusCode: 404 });
-      }
-      if (shiftRow.rows[0].status !== 'open') {
-        throw Object.assign(new Error('الوردية مغلقة — لا يمكن إتمام البيع'), { statusCode: 409 });
+      // 1. تحقق من الوردية (فقط إن كانت الورديات مفعّلة)
+      if (input.shift_id !== null && input.shift_id !== undefined) {
+        const shiftRow = await client.query<{ status: string; pos_terminal_id: string }>(
+          'SELECT status, pos_terminal_id FROM shifts WHERE id = $1 FOR UPDATE',
+          [input.shift_id]
+        );
+        if (!shiftRow.rows[0]) {
+          throw Object.assign(new Error('الوردية غير موجودة'), { statusCode: 404 });
+        }
+        if (shiftRow.rows[0].status !== 'open') {
+          throw Object.assign(new Error('الوردية مغلقة — لا يمكن إتمام البيع'), { statusCode: 409 });
+        }
       }
 
       // 2. احضار نوع العميل (لتحديد الـ pricing)
