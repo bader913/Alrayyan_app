@@ -4,12 +4,14 @@ import {
   Users, UserCheck, BarChart2, Settings, LogOut, ChevronLeft,
   Truck, RotateCcw, Contact, Shield, BadgeCheck, AlertTriangle,
   Receipt, FileText, TrendingUp, Barcode, Tag, QrCode, ArrowLeftRight,
+  Bell, PackageX, Clock, Play, Square,
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore.ts';
-import { authApi } from '../api/client.ts';
+import { authApi, apiClient } from '../api/client.ts';
 import { useQuery } from '@tanstack/react-query';
 import { settingsApi } from '../api/settings.ts';
-import { useEffect, useState } from 'react';
+import { shiftsApi } from '../api/shifts.ts';
+import { useEffect, useState, useRef } from 'react';
 import { useLicense } from '../context/LicenseContext.ts';
 import { usePosStore } from '../store/posStore.ts';
 
@@ -35,6 +37,7 @@ const NAV_ITEMS: NavItem[] = [
   { icon: UserCheck,       label: 'العملاء',     path: '/customers',  roles: ['admin', 'manager', 'cashier'],              ready: true },
   { icon: Users,           label: 'المستخدمون',  path: '/users',      roles: ['admin', 'manager'],                         ready: true },
   { icon: BarChart2,       label: 'التقارير',    path: '/reports',    roles: ['admin', 'manager'],                         ready: true },
+  { icon: Clock,           label: 'الورديات',     path: '/shifts',         roles: ['admin', 'manager', 'cashier', 'warehouse'],  ready: true },
   { icon: Shield,          label: 'سجل العمليات', path: '/audit-logs',     roles: ['admin', 'manager'],                         ready: true },
   { icon: Receipt,         label: 'المصاريف',     path: '/expenses',       roles: ['admin', 'manager'],                         ready: true },
   { icon: FileText,        label: 'الفواتير',     path: '/invoices',       roles: ['admin', 'manager'],                         ready: true },
@@ -64,6 +67,37 @@ export default function Layout() {
     queryFn: () => settingsApi.getAll().then((r) => r.data.settings),
     staleTime: 0,
   });
+
+  /* ── Low stock notifications ── */
+  const [notifOpen, setNotifOpen] = useState(false);
+  const notifRef = useRef<HTMLDivElement>(null);
+  const { data: lowStockData } = useQuery({
+    queryKey: ['low-stock-notif'],
+    queryFn: () => apiClient.get('/products', { params: { low_stock: true, limit: 50 } })
+      .then((r) => (r.data as { products: { id: number; name: string; stock_quantity: string; min_stock_level: string; unit: string | null }[] }).products),
+    refetchInterval: 60000,
+    staleTime: 30000,
+  });
+  const lowStockItems = lowStockData ?? [];
+
+  /* ── Current shift (all roles) ── */
+  const { data: currentShift } = useQuery({
+    queryKey: ['current-shift'],
+    queryFn: () => shiftsApi.getCurrent().then((r) => r.data.shift),
+    refetchInterval: 60000,
+    staleTime: 30000,
+  });
+
+  /* Close notif dropdown on outside click */
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setNotifOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   useEffect(() => {
     if (!settings) return;
@@ -264,6 +298,116 @@ export default function Layout() {
 
       {/* Main Content */}
       <main className="flex-1 min-w-0 overflow-auto flex flex-col">
+
+        {/* ── Top bar: notifications + shift status ── */}
+        <div
+          className="flex items-center justify-end gap-3 px-5 py-2 flex-shrink-0 border-b"
+          style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', minHeight: '44px' }}
+        >
+          {/* Shift status pill */}
+          <NavLink to="/shifts" className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black transition-colors"
+            style={currentShift
+              ? { background: 'rgba(16,185,129,0.12)', color: '#059669', border: '1px solid rgba(16,185,129,0.3)' }
+              : { background: 'var(--bg-muted)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
+            {currentShift ? <><Clock size={12} /> وردية مفتوحة</> : <><Play size={12} /> لا توجد وردية</>}
+          </NavLink>
+
+          {/* Notifications bell */}
+          <div ref={notifRef} className="relative">
+            <button
+              onClick={() => setNotifOpen((o) => !o)}
+              className="relative w-8 h-8 flex items-center justify-center rounded-xl transition-colors"
+              style={{ background: notifOpen ? 'var(--bg-muted)' : 'transparent', color: 'var(--text-secondary)' }}
+              title="إشعارات المخزون"
+            >
+              <Bell size={17} />
+              {lowStockItems.length > 0 && (
+                <span
+                  className="absolute -top-0.5 -left-0.5 min-w-[16px] h-4 flex items-center justify-center rounded-full text-[9px] font-black text-white px-0.5"
+                  style={{ background: '#ef4444' }}
+                >
+                  {lowStockItems.length > 99 ? '99+' : lowStockItems.length}
+                </span>
+              )}
+            </button>
+
+            {/* Dropdown */}
+            {notifOpen && (
+              <div
+                className="absolute top-full left-0 mt-2 w-80 rounded-2xl shadow-2xl z-50 overflow-hidden"
+                style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
+              >
+                <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'var(--border)' }}>
+                  <div className="flex items-center gap-2">
+                    <PackageX size={15} className="text-orange-500" />
+                    <span className="text-sm font-black" style={{ color: 'var(--text-heading)' }}>
+                      مخزون منخفض
+                    </span>
+                  </div>
+                  {lowStockItems.length > 0 && (
+                    <span className="text-xs font-black px-2 py-0.5 rounded-full text-white" style={{ background: '#ef4444' }}>
+                      {lowStockItems.length}
+                    </span>
+                  )}
+                </div>
+
+                {lowStockItems.length === 0 ? (
+                  <div className="py-8 text-center text-sm" style={{ color: 'var(--text-muted)' }}>
+                    ✓ جميع المنتجات مستوى مخزونها كافٍ
+                  </div>
+                ) : (
+                  <div className="max-h-72 overflow-y-auto divide-y" style={{ borderColor: 'var(--border)' }}>
+                    {lowStockItems.map((p) => {
+                      const qty = parseFloat(p.stock_quantity);
+                      const min = parseFloat(p.min_stock_level);
+                      const pct = min > 0 ? Math.min(100, (qty / min) * 100) : 0;
+                      const isEmpty = qty <= 0;
+                      return (
+                        <div key={p.id} className="px-4 py-2.5 flex items-center gap-3">
+                          <div
+                            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                            style={{ background: isEmpty ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)' }}
+                          >
+                            <PackageX size={14} style={{ color: isEmpty ? '#ef4444' : '#f59e0b' }} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-bold truncate" style={{ color: 'var(--text-primary)' }}>
+                              {p.name}
+                            </div>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-muted)' }}>
+                                <div
+                                  className="h-full rounded-full transition-all"
+                                  style={{ width: `${pct}%`, background: isEmpty ? '#ef4444' : '#f59e0b' }}
+                                />
+                              </div>
+                              <span className="text-[10px] font-black flex-shrink-0"
+                                style={{ color: isEmpty ? '#ef4444' : '#f59e0b' }}>
+                                {qty.toLocaleString()} {p.unit ?? ''}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <div className="px-4 py-2 border-t" style={{ borderColor: 'var(--border)' }}>
+                  <NavLink
+                    to="/products"
+                    onClick={() => setNotifOpen(false)}
+                    className="block text-center text-xs font-black py-2 rounded-xl transition-colors"
+                    style={{ background: 'var(--primary)', color: '#fff' }}
+                  >
+                    إدارة المخزون
+                  </NavLink>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Read-only banner when license expired */}
         {isExpired && (
           <div

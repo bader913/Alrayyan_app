@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import * as XLSX from 'xlsx';
 import { reportsApi } from '../api/reports.ts';
 import { useCurrency } from '../hooks/useCurrency.ts';
 import CustomerLedgerModal from '../components/CustomerLedgerModal.tsx';
@@ -43,13 +44,14 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function exportCSV(headers: string[], rows: (string | number)[][], filename: string) {
-  const bom  = '\uFEFF';
-  const body = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
-  const blob = new Blob([bom + body], { type: 'text/csv;charset=utf-8;' });
-  const url  = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
-  URL.revokeObjectURL(url);
+function exportExcel(headers: string[], rows: (string | number)[][], filename: string, sheetName = 'تقرير') {
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  // Style header row bold + set RTL
+  const range = XLSX.utils.decode_range(ws['!ref'] ?? 'A1');
+  ws['!cols'] = headers.map(() => ({ wch: 20 }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  XLSX.writeFile(wb, filename.replace(/\.csv$/, '.xlsx'));
 }
 
 export default function ReportsPage() {
@@ -144,11 +146,11 @@ export default function ReportsPage() {
               ]} />
               <TableToolbar
                 title={`${salesData.total} فاتورة`}
-                onExport={() => exportCSV(
+                onExport={() => exportExcel(
                   ['رقم الفاتورة', 'العميل', 'الكاشير', 'الإجمالي', 'المدفوع', 'الحالة', 'التاريخ'],
                   salesData.data.map(r => [r.invoice_number, r.customer_name ?? '—', r.cashier_name ?? '—',
                     r.total_amount, r.paid_amount, r.payment_status, fmtDate(r.created_at)]),
-                  `sales_${from}_${to}.csv`
+                  `sales_${from}_${to}.xlsx`
                 )} />
               <ReportTable cols={['رقم الفاتورة', 'العميل', 'الكاشير', 'الإجمالي', 'المدفوع', 'الحالة', 'التاريخ']}>
                 {salesData.data.length === 0
@@ -199,11 +201,11 @@ export default function ReportsPage() {
               ]} />
               <TableToolbar
                 title={`${purData.total} فاتورة`}
-                onExport={() => exportCSV(
+                onExport={() => exportExcel(
                   ['رقم الفاتورة', 'المورد', 'الإجمالي', 'المدفوع', 'الحالة', 'التاريخ'],
                   purData.data.map(r => [r.invoice_number, r.supplier_name ?? '—',
                     r.total_amount, r.paid_amount, r.payment_status, fmtDate(r.created_at)]),
-                  `purchases_${from}_${to}.csv`
+                  `purchases_${from}_${to}.xlsx`
                 )} />
               <ReportTable cols={['رقم الفاتورة', 'المورد', 'الإجمالي', 'المدفوع', 'الحالة', 'التاريخ']}>
                 {purData.data.length === 0
@@ -264,7 +266,7 @@ export default function ReportsPage() {
               ]} />
               <TableToolbar
                 title={`${stockData.data.length} صنف`}
-                onExport={() => exportCSV(
+                onExport={() => exportExcel(
                   ['الكود', 'المنتج', 'الفئة', 'الكمية', 'الحد الأدنى', 'التكلفة', 'الجملة', 'التجزئة'],
                   stockData.data.map(r => [r.barcode, r.name, r.category_name ?? '—', r.stock_quantity,
                     r.min_stock_level, r.purchase_price, r.wholesale_price, r.retail_price]),
@@ -314,11 +316,11 @@ export default function ReportsPage() {
               ]} />
               <TableToolbar
                 title={`${profitData.data.length} منتج`}
-                onExport={() => exportCSV(
+                onExport={() => exportExcel(
                   ['المنتج', 'الكود', 'الكمية المباعة', 'الإيرادات', 'التكلفة', 'الربح الإجمالي'],
                   profitData.data.map(r => [r.product_name, r.barcode, r.total_sold,
                     r.total_revenue, r.total_cost, r.gross_profit]),
-                  `profit_${from}_${to}.csv`
+                  `profit_${from}_${to}.xlsx`
                 )} />
               <ReportTable cols={['المنتج', 'الكود', 'الكمية', 'الإيرادات', 'التكلفة', 'الربح']}>
                 {profitData.data.length === 0
@@ -418,7 +420,7 @@ function TableToolbar({ title, onExport }: { title: string; onExport: () => void
       <button onClick={onExport}
         className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-xl border transition hover:opacity-80"
         style={{ background: 'var(--bg-muted)', borderColor: 'var(--border)', color: 'var(--text-body)' }}>
-        <Download className="w-4 h-4" /> تصدير CSV
+        <Download className="w-4 h-4" /> تصدير Excel
       </button>
     </div>
   );

@@ -19,6 +19,7 @@ import ReportsPage from './pages/ReportsPage.tsx';
 import AuditLogPage from './pages/AuditLogPage.tsx';
 import SettingsPage from './pages/SettingsPage.tsx';
 import SubscriptionPage from './pages/SubscriptionPage.tsx';
+import ShiftsPage        from './pages/ShiftsPage.tsx';
 import ExpensesPage      from './pages/ExpensesPage.tsx';
 import InvoicesPage      from './pages/InvoicesPage.tsx';
 import ProfitCalcPage    from './pages/ProfitCalcPage.tsx';
@@ -186,6 +187,9 @@ export default function App() {
             <Route element={<RequireRole roles={['admin']} />}>
               <Route path="/settings" element={<SettingsPage />} />
             </Route>
+
+            {/* Shifts — all roles */}
+            <Route path="/shifts" element={<ShiftsPage />} />
 
             {/* Tools — admin + manager only */}
             <Route element={<RequireRole roles={['admin', 'manager']} />}>
