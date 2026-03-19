@@ -164,9 +164,9 @@ export default function CustomersPage() {
 
       {/* Summary Card */}
       {totalDebt > 0 && (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-xl p-4">
-          <p className="text-sm text-red-400">إجمالي الديون المستحقة من العملاء</p>
-          <p className="text-2xl font-bold text-red-300 mt-1">{fmt(totalDebt)}</p>
+        <div className="rounded-xl p-4" style={{ background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.18)' }}>
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>إجمالي الديون المستحقة من العملاء</p>
+          <p className="text-2xl font-bold mt-1" style={{ color: '#ef4444' }}>{fmt(totalDebt)}</p>
         </div>
       )}
 
@@ -370,9 +370,16 @@ export default function CustomersPage() {
               <form onSubmit={submitPay} className="p-5 space-y-4">
 
                 {/* Current balance */}
-                <div className={`rounded-lg p-3 text-sm flex justify-between items-center ${currBalance > 0 ? 'bg-red-950/40 border border-red-800/40' : currBalance < 0 ? 'bg-green-950/40 border border-green-800/40' : 'bg-slate-800'}`}>
-                  <span className="text-slate-400">الرصيد الحالي</span>
-                  <span className={`font-bold text-base ${currBalance > 0 ? 'text-red-400' : currBalance < 0 ? 'text-green-400' : 'text-slate-400'}`}>
+                <div
+                  className="rounded-lg p-3 text-sm flex justify-between items-center"
+                  style={currBalance > 0
+                    ? { background: 'rgba(239,68,68,0.07)',    border: '1px solid rgba(239,68,68,0.18)' }
+                    : currBalance < 0
+                    ? { background: 'rgba(16,185,129,0.07)',  border: '1px solid rgba(16,185,129,0.18)' }
+                    : { background: 'var(--bg-muted)',         border: '1px solid var(--border)' }}
+                >
+                  <span style={{ color: 'var(--text-secondary)' }}>الرصيد الحالي</span>
+                  <span className="font-bold text-base" style={{ color: currBalance > 0 ? '#ef4444' : currBalance < 0 ? '#10b981' : 'var(--text-muted)' }}>
                     {currBalance > 0 ? `${fmt(currBalance)} (عليه دين)` : currBalance < 0 ? `${fmt(Math.abs(currBalance))} (بذمتنا)` : 'لا يوجد رصيد'}
                   </span>
                 </div>
