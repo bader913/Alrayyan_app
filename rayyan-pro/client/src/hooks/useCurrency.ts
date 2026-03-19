@@ -4,7 +4,7 @@ import { settingsApi } from '../api/settings.ts';
 const SYMBOLS: Record<string, string> = {
   USD: '$',
   SYP: 'ل.س',
-  TRY: '₺',
+  TRY: 'TL',
   SAR: 'ر.س',
   AED: 'د.إ',
 };

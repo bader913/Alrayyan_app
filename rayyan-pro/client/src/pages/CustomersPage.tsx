@@ -9,7 +9,7 @@ import { Users, Plus, Search, Eye, CreditCard, X, ChevronLeft, ChevronRight, Edi
 const CURRENCIES = [
   { code: 'USD', label: 'دولار أمريكي',   symbol: '$',    rateKey: '' },
   { code: 'SYP', label: 'ليرة سورية',     symbol: 'ل.س',  rateKey: 'usd_to_syp' },
-  { code: 'TRY', label: 'ليرة تركية',     symbol: '₺',    rateKey: 'usd_to_try' },
+  { code: 'TRY', label: 'ليرة تركية',     symbol: 'TL',    rateKey: 'usd_to_try' },
   { code: 'SAR', label: 'ريال سعودي',     symbol: 'ر.س',  rateKey: 'usd_to_sar' },
 ];
 
