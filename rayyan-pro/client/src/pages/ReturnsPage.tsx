@@ -9,6 +9,7 @@ import { apiClient } from '../api/client.ts';
 import { useAuthStore } from '../store/authStore.ts';
 import { useCurrency } from '../hooks/useCurrency.ts';
 import axios from 'axios';
+import CustomerLedgerModal from '../components/CustomerLedgerModal.tsx';
 
 const fmtQty = (v: number | string | null | undefined, dec = 0) =>
   v != null ? parseFloat(String(v)).toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec }) : '—';
@@ -414,6 +415,7 @@ export default function ReturnsPage() {
   const [page, setPage]             = useState(1);
   const [showCreate, setShowCreate] = useState(false);
   const [viewId, setViewId]         = useState<number | null>(null);
+  const [ledgerCustomer, setLedgerCustomer] = useState<{ id: number; name: string } | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['returns', page],
@@ -475,8 +477,17 @@ export default function ReturnsPage() {
                     <span className="font-black text-slate-700 text-xs">{r.return_number}</span>
                   </td>
                   <td className="px-4 py-3 text-xs font-bold text-slate-500">{r.sale_invoice}</td>
-                  <td className="px-4 py-3 text-slate-700 font-bold truncate max-w-[120px]">
-                    {r.customer_name ?? '—'}
+                  <td className="px-4 py-3 font-bold truncate max-w-[120px]">
+                    {r.customer_id && r.customer_name ? (
+                      <button
+                        onClick={() => setLedgerCustomer({ id: r.customer_id!, name: r.customer_name! })}
+                        className="text-slate-700 hover:text-blue-600 hover:underline transition text-right"
+                      >
+                        {r.customer_name}
+                      </button>
+                    ) : (
+                      <span className="text-slate-500">{r.customer_name ?? '—'}</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 font-bold text-rose-700">{fmt(r.total_amount)}</td>
                   <td className="px-4 py-3">
@@ -525,6 +536,13 @@ export default function ReturnsPage() {
       )}
       {viewId !== null && (
         <ReturnDetail id={viewId} onClose={() => setViewId(null)} />
+      )}
+      {ledgerCustomer && (
+        <CustomerLedgerModal
+          customerId={ledgerCustomer.id}
+          customerName={ledgerCustomer.name}
+          onClose={() => setLedgerCustomer(null)}
+        />
       )}
     </div>
   );

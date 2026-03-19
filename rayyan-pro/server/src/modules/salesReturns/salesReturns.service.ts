@@ -185,6 +185,7 @@ export class SalesReturnsService {
     const rows = await pool.query(
       `SELECT r.id, r.return_number, r.sale_id, r.return_method,
               r.total_amount, r.reason, r.notes, r.created_at,
+              r.customer_id,
               s.invoice_number AS sale_invoice,
               c.name AS customer_name,
               u.full_name AS created_by

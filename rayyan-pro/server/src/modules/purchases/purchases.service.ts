@@ -185,6 +185,7 @@ export class PurchasesService {
       `SELECT p.id, p.invoice_number, p.total_amount, p.paid_amount,
               (p.total_amount - p.paid_amount) AS due_amount,
               p.purchase_currency, p.exchange_rate, p.notes, p.created_at,
+              p.supplier_id,
               s.name AS supplier_name,
               u.full_name AS created_by
        FROM purchases p

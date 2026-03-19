@@ -16,6 +16,7 @@ export interface SaleReturn {
   return_number: string;
   sale_id:       number;
   sale_invoice:  string;
+  customer_id:   number | null;
   customer_name: string | null;
   created_by:    string;
   return_method: 'cash_refund' | 'debt_discount' | 'stock_only';

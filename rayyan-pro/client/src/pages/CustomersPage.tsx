@@ -213,7 +213,11 @@ export default function CustomersPage() {
               <tr><td colSpan={6} className="text-center py-12 text-slate-500">لا يوجد عملاء</td></tr>
             ) : customers.map(c => (
               <tr key={c.id} className="border-t border-slate-700 hover:bg-slate-750 transition">
-                <td className="px-4 py-3 font-medium text-white">{c.name}</td>
+                <td className="px-4 py-3">
+                  <button onClick={() => openAccount(c)} className="font-medium text-white hover:text-blue-400 hover:underline transition text-right">
+                    {c.name}
+                  </button>
+                </td>
                 <td className="px-4 py-3 text-slate-300">{c.phone ?? '—'}</td>
                 <td className="px-4 py-3">
                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${c.customer_type === 'wholesale' ? 'bg-blue-900/40 text-blue-400' : 'bg-slate-700 text-slate-300'}`}>

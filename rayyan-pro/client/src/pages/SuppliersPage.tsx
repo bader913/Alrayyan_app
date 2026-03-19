@@ -180,7 +180,11 @@ export default function SuppliersPage() {
               <tr><td colSpan={5} className="text-center py-12 text-slate-500">لا يوجد موردون</td></tr>
             ) : suppliers.map(s => (
               <tr key={s.id} className="border-t border-slate-700 hover:bg-slate-750 transition">
-                <td className="px-4 py-3 font-medium text-white">{s.name}</td>
+                <td className="px-4 py-3">
+                  <button onClick={() => openAccount(s)} className="font-medium text-white hover:text-amber-400 hover:underline transition text-right">
+                    {s.name}
+                  </button>
+                </td>
                 <td className="px-4 py-3 text-slate-300">{s.phone ?? '—'}</td>
                 <td className="px-4 py-3 text-slate-400 max-w-xs truncate">{s.address ?? '—'}</td>
                 <td className="px-4 py-3 text-left">

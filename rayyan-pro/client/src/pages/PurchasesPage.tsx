@@ -9,6 +9,7 @@ import { purchasesApi, type Purchase, type PurchaseItemInput } from '../api/purc
 import { useAuthStore } from '../store/authStore.ts';
 import { useCurrency } from '../hooks/useCurrency.ts';
 import { apiClient } from '../api/client.ts';
+import SupplierLedgerModal from '../components/SupplierLedgerModal.tsx';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -467,6 +468,7 @@ export default function PurchasesPage() {
   const [showCreate, setShowCreate]   = useState(false);
   const [viewId, setViewId]           = useState<number | null>(null);
   const [payPurchase, setPayPurchase] = useState<Purchase | null>(null);
+  const [ledgerSupplier, setLedgerSupplier] = useState<{ id: number; name: string } | null>(null);
 
   const [debouncedSearch, setDebouncedSearch] = useState('');
   React.useEffect(() => {
@@ -555,7 +557,16 @@ export default function PurchasesPage() {
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <Truck size={13} className="text-slate-400 flex-shrink-0" />
-                      <span className="font-bold text-slate-200 truncate max-w-[130px]">{p.supplier_name ?? 'بدون مورد'}</span>
+                      {p.supplier_id ? (
+                        <button
+                          onClick={() => setLedgerSupplier({ id: p.supplier_id!, name: p.supplier_name ?? 'مورد' })}
+                          className="font-bold text-slate-200 truncate max-w-[130px] hover:text-amber-400 hover:underline transition text-right"
+                        >
+                          {p.supplier_name ?? 'بدون مورد'}
+                        </button>
+                      ) : (
+                        <span className="font-bold text-slate-200 truncate max-w-[130px]">{p.supplier_name ?? 'بدون مورد'}</span>
+                      )}
                     </div>
                   </td>
                   <td className="px-4 py-3 font-bold text-slate-200">{fmt(p.total_amount)}</td>
@@ -639,6 +650,13 @@ export default function PurchasesPage() {
           purchase={payPurchase}
           onClose={() => setPayPurchase(null)}
           onDone={() => setPayPurchase(null)}
+        />
+      )}
+      {ledgerSupplier && (
+        <SupplierLedgerModal
+          supplierId={ledgerSupplier.id}
+          supplierName={ledgerSupplier.name}
+          onClose={() => setLedgerSupplier(null)}
         />
       )}
     </div>
