@@ -85,7 +85,7 @@ const META: Record<ActionType, {
   },
   clear: {
     title:        '⚠️ مسح شامل لجميع البيانات',
-    desc:         'سيتم حذف جميع الفواتير والمبيعات والمشتريات والمرتجعات وحركات المخزون وسجل العمليات، وإعادة الأرصدة والمخزون إلى صفر. هذا الإجراء لا يمكن التراجع عنه.',
+    desc:         'سيتم حذف كل شيء: منتجات، فئات، عملاء، موردين، مبيعات، مشتريات، مرتجعات، حركات مخزون، سجل العمليات. يبقى المستخدمون فقط. هذا الإجراء لا يمكن التراجع عنه.',
     confirmLabel: 'تأكيد المسح الكامل',
     danger:       true,
     icon:         <Trash2 className="w-6 h-6 text-red-400" />,
@@ -437,7 +437,7 @@ export default function SettingsPage() {
               <span className="font-semibold text-white text-sm">مسح شامل</span>
             </div>
             <p className="text-xs text-slate-400 leading-relaxed flex-1">
-              حذف جميع الفواتير والمبيعات والمشتريات والمرتجعات وتصفير المخزون والأرصدة. <span className="text-red-400 font-semibold">لا يمكن التراجع.</span>
+              حذف كل شيء — منتجات، فئات، عملاء، موردين، فواتير، مخزون... <span className="text-slate-300 font-semibold">يبقى المستخدمون فقط.</span> <span className="text-red-400 font-semibold">لا يمكن التراجع.</span>
             </p>
             <button onClick={() => setActive('clear')}
               className="w-full py-2 rounded-lg text-sm font-semibold bg-red-600 hover:bg-red-700 text-white transition flex items-center justify-center gap-2">

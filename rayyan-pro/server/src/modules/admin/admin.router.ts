@@ -70,8 +70,9 @@ async function resetSeq(client: PoolClient, table: string) {
   `);
 }
 
-// ─── Clear all business data (shared helper) ──────────────────────────────────
+// ─── Clear EVERYTHING except users ───────────────────────────────────────────
 async function clearAllData(client: PoolClient) {
+  // الطبقة الأولى: جداول تعتمد على فواتير أو منتجات أو عملاء
   await client.query('DELETE FROM sales_return_items');
   await client.query('DELETE FROM sales_returns');
   await client.query('DELETE FROM sale_items');
@@ -81,8 +82,14 @@ async function clearAllData(client: PoolClient) {
   await client.query('DELETE FROM customer_account_transactions');
   await client.query('DELETE FROM supplier_account_transactions');
   await client.query('DELETE FROM product_stock_movements');
-  await client.query('UPDATE invoice_sequences SET last_number = 0');
   await client.query('DELETE FROM audit_logs');
+  // الطبقة الثانية: البيانات الرئيسية
+  await client.query('DELETE FROM products');
+  await client.query('DELETE FROM categories');
+  await client.query('DELETE FROM customers');
+  await client.query('DELETE FROM suppliers');
+  // إعادة تسلسلات الفواتير
+  await client.query('UPDATE invoice_sequences SET last_number = 0');
 }
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
@@ -268,12 +275,9 @@ export async function adminRoutes(fastify: FastifyInstance) {
 
       await withTransaction(async (client) => {
         await clearAllData(client);
-        await client.query('UPDATE customers SET balance = 0, updated_at = NOW()');
-        await client.query('UPDATE suppliers SET balance = 0, updated_at = NOW()');
-        await client.query('UPDATE products  SET stock_quantity = 0, updated_at = NOW()');
       });
 
-      return reply.status(200).send({ success: true, message: 'تم مسح جميع البيانات التجارية بنجاح' });
+      return reply.status(200).send({ success: true, message: 'تم مسح جميع البيانات بنجاح — المستخدمون فقط محتفظ بهم' });
     }
   );
 
